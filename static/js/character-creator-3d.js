@@ -315,9 +315,14 @@ if(host){
       avatar.add(group);
       return group;
     };
+    const kneeGroups=[];
     for(const side of [-1,1]){
       const arm=makePivotGroup(side<0?'oqArmLeft':'oqArmRight',[side*.49,3.14,0]);
       const leg=makePivotGroup(side<0?'oqLegLeft':'oqLegRight',[side*.19,1.88,0]);
+      const knee=new THREE.Group();
+      knee.name=side<0?'oqKneeLeft':'oqKneeRight';
+      knee.position.set(0,1.02-1.88,0);
+      leg.add(knee);
       for(const child of [...avatar.children]){
         if(child===arm||child===leg||!child.isMesh)continue;
         const x=child.position.x,y=child.position.y;
@@ -329,13 +334,16 @@ if(host){
           arm.add(child);
         }else if(legMesh){
           avatar.remove(child);
-          child.position.x-=leg.position.x;child.position.y-=leg.position.y;child.position.z-=leg.position.z;
-          leg.add(child);
+          const lowerLeg=y<=1.12;
+          child.position.x-=side*.19;
+          child.position.y-=lowerLeg?1.02:1.88;
+          child.position.z-=0;
+          (lowerLeg?knee:leg).add(child);
         }
       }
-      limbGroups.arms.push(arm);limbGroups.legs.push(leg);
+      limbGroups.arms.push(arm);limbGroups.legs.push(leg);kneeGroups.push(knee);
     }
-    avatar.userData.oqtheraLimbNames={arms:['oqArmLeft','oqArmRight'],legs:['oqLegLeft','oqLegRight']};
+    avatar.userData.oqtheraLimbNames={arms:['oqArmLeft','oqArmRight'],legs:['oqLegLeft','oqLegRight'],knees:['oqKneeLeft','oqKneeRight']};
     avatar.visible=true;importedAvatar.visible=false;
   }
   let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
