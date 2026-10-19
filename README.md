@@ -9,10 +9,11 @@ A dark, atmospheric opening sequence set in 2089, after the collapse of civiliza
 - Animated Three.js environment with a ruined skyline, broken transmission tower, drifting ash, fog, and atmospheric lighting
 - Cinematic title screen and responsive layout
 - Persian story intro presented in four chapters
-- ARIA transmission panel and interactive intro controls
-- No gameplay systems yet; this repository currently contains the intro experience only
+- Timed English cinematic narration, subtitles, playback controls, and a separate ARIA voice
+- FastAPI backend foundation with health checks and persistent save slots
+- The full gameplay loop is not implemented yet; the backend currently provides save persistence, not missions, combat, or multiplayer
 
-## Run locally
+## Run the web intro
 
 Because the page uses JavaScript modules, serve it over HTTP instead of opening `index.html` directly.
 
@@ -22,21 +23,31 @@ python -m http.server 8080
 
 Then open http://localhost:8080.
 
-Three.js is loaded from jsDelivr, and fonts are loaded from Google Fonts, so an internet connection is needed.
+Three.js and fonts are loaded from external CDNs, so an internet connection is needed. Voice playback uses the browser's built-in Speech Synthesis API; voice availability and quality depend on the browser and operating system.
+
+## Run the backend
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+- API health: http://127.0.0.1:8000/api/health
+- Interactive API docs: http://127.0.0.1:8000/docs
+- Backend details and endpoint examples: [`backend/README.md`](backend/README.md)
+
+SQLite is used by default. Database and CORS settings can be changed in `backend/.env`. The current backend is intended for local development; do not expose save endpoints publicly until authentication and authorization are implemented.
 
 ## GitHub Pages
 
-In the repository settings, open **Pages**, select **Deploy from a branch**, choose `main` and `/(root)`, then save.
+In the repository settings, open **Pages**, select **Deploy from a branch**, choose `main` and `/(root)`, then save. GitHub Pages serves the static intro only; it does not run the FastAPI backend. A deployed game needs a separately hosted backend and a matching `CORS_ORIGINS` setting.
 
 ## Project
 
 - Repository: https://github.com/Japharzadeh/Oqthera
 - Title: LAST STATION: EARTH
 - Tagline: Civilization did not end. It went dark.
-
-
-## Cinematic narration
-
-The intro includes timed English narration for its four story chapters, plus a separate ARIA voice for transmissions. The on-screen story text remains visible as subtitles. Players can pause/resume, replay, skip the current voice playback, and adjust volume.
-
-Voice playback uses the browser's built-in Speech Synthesis API, so available voices and how closely they match the intended low cinematic narrator / distinct ARIA voice depend on the user's browser and operating system. Speech starts after an interaction with the page, and narration requires a browser that supports Speech Synthesis.
