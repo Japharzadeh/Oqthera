@@ -120,8 +120,9 @@ const AUDIO_REPO_API='https://api.github.com/repos/Japharzadeh/Oqthera';
 const AUDIO_BRANCH='feature/game-backend';
 const audioFiles={chapters:[],aria:null,ambient:null,effects:{}};
 let activeAudio=null,ambientAudio=null;
-function isAudioPath(path){return /\\.(mp3|wav|ogg|m4a|aac|flac|opus)(\\?.*)?$/i.test(path)}
-function rawAudioUrl(path){return 'https://raw.githubusercontent.com/Japharzadeh/Oqthera/'+encodeURIComponent(AUDIO_BRANCH).replace('%2F','/')+'/'+path.split('/').map(encodeURIComponent).join('/')}
+function isAudioPath(path){return /\.(mp3|wav|ogg|m4a|aac|flac|opus)(\?.*)?$/i.test(path)}
+function pathTokens(path){return path.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)}
+function rawAudioUrl(path){return 'https://raw.githubusercontent.com/Japharzadeh/Oqthera/'+AUDIO_BRANCH+'/'+path.split('/').map(encodeURIComponent).join('/')}
 function naturalPathSort(a,b){return a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})}
 async function discoverAudioAssets(){
   try{
@@ -129,31 +130,38 @@ async function discoverAudioAssets(){
     if(!response.ok)throw new Error('Audio asset index unavailable: '+response.status);
     const tree=await response.json();
     const paths=(tree.tree||[]).filter(item=>item.type==='blob'&&isAudioPath(item.path)).map(item=>item.path).sort(naturalPathSort);
-    const aria=paths.find(p=>/(^|[\\/_ .-])aria([\\/_ .-]|$)/i.test(p));
-    const ambient=paths.find(p=>/(ambient|background|atmosphere|soundtrack|music|drone)/i.test(p));
+    const tokensByPath=new Map(paths.map(path=>[path,pathTokens(path)]));
+    const findByTokens=(tokens)=>paths.find(path=>tokens.some(token=>tokensByPath.get(path).includes(token)))||null;
+    const aria=findByTokens(['aria']);
+    const ambient=findByTokens(['ambient','background','atmosphere','soundtrack','music','drone']);
     const effects={};
-    for(const name of ['click','confirm','signal','transition']){
-      effects[name]=paths.find(p=>new RegExp('(^|[\\\\/_ .-])'+name+'([\\\\/_ .-]|$)','i').test(p))||null;
-    }
-    const storyPaths=paths.filter(p=>p!==aria&&p!==ambient&&!/(^|[\\/_ .-])(click|confirm|signal|transition|sfx|effect|music|ambient|background|atmosphere|soundtrack)([\\/_ .-]|$)/i.test(p));
-    const chapterKeywords=[
-      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?1|one|world|first)/i,
-      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?2|two|light|lights)/i,
-      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?3|three|station|2089)/i,
-      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?4|four|silence)/i
+    for(const name of ['click','confirm','signal','transition'])effects[name]=findByTokens([name]);
+    const excluded=new Set(['aria','click','confirm','signal','transition','sfx','effect','effects','music','ambient','background','atmosphere','soundtrack','drone']);
+    const storyPaths=paths.filter(path=>path!==aria&&path!==ambient&&!tokensByPath.get(path).some(token=>excluded.has(token)));
+    const chapterAliases=[
+      ['chapter','1'],['chapter','2'],['chapter','3'],['chapter','4']
     ];
-    audioFiles.chapters=chapterKeywords.map(pattern=>storyPaths.find(p=>pattern.test(p))||null);
-    if(audioFiles.chapters.some(p=>!p)&&storyPaths.length>=4){
+    const chapterWords=[['one','world','first'],['two','light','lights'],['three','station','2089'],['four','silence']];
+    audioFiles.chapters=chapterAliases.map((aliases,index)=>{
+      const tokens=chapterWords[index];
+      return storyPaths.find(path=>{
+        const parts=tokensByPath.get(path);
+        return (parts.includes('chapter')||parts.includes('transmission')||parts.includes('story')||parts.includes('narration')||parts.includes('narrator')||parts.includes('voice'))&&
+          (parts.includes(aliases[1])||tokens.some(token=>parts.includes(token)));
+      })||null;
+    });
+    if(audioFiles.chapters.some(path=>!path)&&storyPaths.length>=4){
       const ordered=storyPaths.slice(0,4);
-      audioFiles.chapters=audioFiles.chapters.map((p,i)=>p||ordered[i]);
+      audioFiles.chapters=audioFiles.chapters.map((path,index)=>path||ordered[index]);
     }
-    audioFiles.aria=aria||null;
-    audioFiles.ambient=ambient||null;
+    audioFiles.aria=aria;
+    audioFiles.ambient=ambient;
     audioFiles.effects=effects;
     if(audioFiles.ambient){
       ambientAudio=new Audio(rawAudioUrl(audioFiles.ambient));
       ambientAudio.loop=true;ambientAudio.volume=.18;ambientAudio.preload='auto';
     }
+    console.info('Repository audio assets discovered',audioFiles);
     return audioFiles;
   }catch(error){
     console.warn('Repository audio discovery failed; using browser voice fallback.',error);
@@ -200,6 +208,10 @@ function ensureAudio(){
   }catch(error){console.warn('Ambient audio could not start',error)}
 }
 function soundEffect(type='click'){
+  if(typeof audioFiles!=='undefined'&&audioFiles.effects?.[type]){
+    const result=playAudioFile(audioFiles.effects[type],{volume:.75});
+    if(result){result.playPromise?.catch(()=>{});return}
+  }
   if(!audioContext||!masterGain)return;
   try{
     const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();
@@ -339,7 +351,7 @@ function narrateChapter(){
   const result=playAudioFile(chapterAudio,{volume:.94});
   if(!result){narrateChapterWithSpeechSynthesis();return}
   const {audio,playPromise}=result;
-  let completed=false,timers=[];
+  let completed=false,timers=[],paragraphsRendered=false;
   const clearTimers=()=>timers.forEach(clearTimeout);
   const complete=()=>{
     if(completed||token!==narrationToken)return;
@@ -352,6 +364,8 @@ function narrateChapter(){
     chapterWatchdog=setTimeout(advanceChapter,1700);
   };
   const revealParagraphs=()=>{
+    if(paragraphsRendered)return;
+    paragraphsRendered=true;
     const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:Math.max(12,paragraphs.reduce((sum,p)=>sum+p.text.length,0)/13);
     const total=paragraphs.reduce((sum,p)=>sum+p.text.length,0)||1;
     let cumulative=0;
