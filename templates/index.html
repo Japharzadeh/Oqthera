@@ -385,9 +385,9 @@ function audioFilesForCurrentChapter(){
 
 function animateTitleWords(title){
   storyTitle.replaceChildren();
-  title.split(/(\\s+)/).filter(Boolean).forEach((part,index)=>{
+  title.split(/(\s+)/).filter(Boolean).forEach((part,index)=>{
     const word=document.createElement('span');
-    word.className=/^\\s+$/.test(part)?'story-title-space':'story-title-word';
+    word.className=/^\s+$/.test(part)?'story-title-space':'story-title-word';
     word.textContent=part;
     if(word.className==='story-title-word')word.style.animationDelay=(index*65)+'ms';
     storyTitle.appendChild(word);
