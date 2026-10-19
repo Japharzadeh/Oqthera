@@ -115,10 +115,73 @@ let chapterIndex=0,chapterTimer=null,introSequenceActive=false,introSequenceComp
 const intro=document.querySelector('#intro'),storyTitle=document.querySelector('#story-title'),storyText=document.querySelector('#story-text'),storyCount=document.querySelector('#story-count'),aria=document.querySelector('#aria');
 const voiceStatus=document.querySelector('#voice-status');
 let narratorUtterance=null,ariaUtterance=null,paused=false,voiceSkipped=false,activeSpeaker='narrator',availableVoices=[],speechQueue=[],speechIndex=0,activeText='',audioContext=null,masterGain=null,ambienceStarted=false;
+
+const AUDIO_REPO_API='https://api.github.com/repos/Japharzadeh/Oqthera';
+const AUDIO_BRANCH='feature/game-backend';
+const audioFiles={chapters:[],aria:null,ambient:null,effects:{}};
+let activeAudio=null,ambientAudio=null;
+function isAudioPath(path){return /\\.(mp3|wav|ogg|m4a|aac|flac|opus)(\\?.*)?$/i.test(path)}
+function rawAudioUrl(path){return 'https://raw.githubusercontent.com/Japharzadeh/Oqthera/'+encodeURIComponent(AUDIO_BRANCH).replace('%2F','/')+'/'+path.split('/').map(encodeURIComponent).join('/')}
+function naturalPathSort(a,b){return a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})}
+async function discoverAudioAssets(){
+  try{
+    const response=await fetch(AUDIO_REPO_API+'/git/trees/'+encodeURIComponent(AUDIO_BRANCH)+'?recursive=1',{headers:{Accept:'application/vnd.github+json'}});
+    if(!response.ok)throw new Error('Audio asset index unavailable: '+response.status);
+    const tree=await response.json();
+    const paths=(tree.tree||[]).filter(item=>item.type==='blob'&&isAudioPath(item.path)).map(item=>item.path).sort(naturalPathSort);
+    const aria=paths.find(p=>/(^|[\\/_ .-])aria([\\/_ .-]|$)/i.test(p));
+    const ambient=paths.find(p=>/(ambient|background|atmosphere|soundtrack|music|drone)/i.test(p));
+    const effects={};
+    for(const name of ['click','confirm','signal','transition']){
+      effects[name]=paths.find(p=>new RegExp('(^|[\\\\/_ .-])'+name+'([\\\\/_ .-]|$)','i').test(p))||null;
+    }
+    const storyPaths=paths.filter(p=>p!==aria&&p!==ambient&&!/(^|[\\/_ .-])(click|confirm|signal|transition|sfx|effect|music|ambient|background|atmosphere|soundtrack)([\\/_ .-]|$)/i.test(p));
+    const chapterKeywords=[
+      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?1|one|world|first)/i,
+      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?2|two|light|lights)/i,
+      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?3|three|station|2089)/i,
+      /(chapter|transmission|story|narrat|voice)[\\/_ .-]*(0?4|four|silence)/i
+    ];
+    audioFiles.chapters=chapterKeywords.map(pattern=>storyPaths.find(p=>pattern.test(p))||null);
+    if(audioFiles.chapters.some(p=>!p)&&storyPaths.length>=4){
+      const ordered=storyPaths.slice(0,4);
+      audioFiles.chapters=audioFiles.chapters.map((p,i)=>p||ordered[i]);
+    }
+    audioFiles.aria=aria||null;
+    audioFiles.ambient=ambient||null;
+    audioFiles.effects=effects;
+    if(audioFiles.ambient){
+      ambientAudio=new Audio(rawAudioUrl(audioFiles.ambient));
+      ambientAudio.loop=true;ambientAudio.volume=.18;ambientAudio.preload='auto';
+    }
+    return audioFiles;
+  }catch(error){
+    console.warn('Repository audio discovery failed; using browser voice fallback.',error);
+    return audioFiles;
+  }
+}
+const audioAssetsReady=discoverAudioAssets();
+function playAudioFile(path,{loop=false,volume=.9}={}){
+  if(!path)return null;
+  if(activeAudio){activeAudio.pause();activeAudio.currentTime=0}
+  const audio=new Audio(rawAudioUrl(path));
+  audio.preload='auto';audio.loop=loop;audio.volume=volume;activeAudio=audio;
+  const playPromise=audio.play();
+  return {audio,playPromise};
+}
+function startAmbientFile(){
+  if(!ambientAudio)return;
+  ambientAudio.play().catch(()=>{});
+}
+function stopActiveAudio(){
+  if(activeAudio){activeAudio.pause();activeAudio.currentTime=0;activeAudio=null}
+}
+
 function refreshVoices(){availableVoices=window.speechSynthesis?window.speechSynthesis.getVoices():[]}
 if('speechSynthesis' in window){refreshVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshVoices)}
 function chooseVoice(kind){const english=availableVoices.filter(v=>/^en([-_]|$)/i.test(v.lang));if(!english.length)return null;const preferred=kind==='aria'?/(female|woman|zira|samantha|karen|susan|victoria|aria|jenny|ava|serena)/i:/(male|man|david|mark|guy|daniel|alex|fred|tom|james|oliver|george)/i;return english.find(v=>preferred.test(v.name))||english.find(v=>/^en-US/i.test(v.lang))||english[0]}
 function ensureAudio(){
+  startAmbientFile();
   const AudioContextClass=window.AudioContext||window.webkitAudioContext;
   if(!AudioContextClass)return;
   try{
@@ -150,6 +213,7 @@ function soundEffect(type='click'){
   }catch(error){console.warn('Sound effect failed',error)}
 }
 function stopSpeech(){
+  stopActiveAudio();
   narrationToken++;
   if('speechSynthesis' in window)speechSynthesis.cancel();
   speechQueue=[];speechIndex=0;narratorUtterance=null;ariaUtterance=null;paused=false;
@@ -215,7 +279,7 @@ function speakParagraph(text,token,onBoundary,onDone){
   utterance.onerror=e=>{if(ended||e.error==='canceled'||e.error==='interrupted')return;ended=true;if(token===narrationToken)onDone?.()};
   try{speechSynthesis.speak(utterance)}catch(error){onDone?.()}
 }
-function narrateChapter(){
+function narrateChapterWithSpeechSynthesis(){
   const token=++narrationToken;
   const item=chapters[chapterIndex];
   const paragraphs=textFromHtml(item.text);
@@ -264,6 +328,70 @@ function narrateChapter(){
   }
   nextParagraph();
 }
+
+function narrateChapter(){
+  const chapterAudio=audioFilesForCurrentChapter();
+  if(!chapterAudio){narrateChapterWithSpeechSynthesis();return}
+  const token=++narrationToken;
+  const paragraphs=textFromHtml(chapters[chapterIndex].text);
+  storyText.innerHTML='';
+  voiceStatus.textContent='LOADING NARRATION AUDIO';
+  const result=playAudioFile(chapterAudio,{volume:.94});
+  if(!result){narrateChapterWithSpeechSynthesis();return}
+  const {audio,playPromise}=result;
+  let completed=false,timers=[];
+  const clearTimers=()=>timers.forEach(clearTimeout);
+  const complete=()=>{
+    if(completed||token!==narrationToken)return;
+    completed=true;clearTimers();
+    paragraphs.forEach((item,i)=>{
+      const p=storyText.children[i];
+      if(p){p.textContent=item.text}
+    });
+    voiceStatus.textContent='TRANSMISSION COMPLETE';
+    chapterWatchdog=setTimeout(advanceChapter,1700);
+  };
+  const revealParagraphs=()=>{
+    const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:Math.max(12,paragraphs.reduce((sum,p)=>sum+p.text.length,0)/13);
+    const total=paragraphs.reduce((sum,p)=>sum+p.text.length,0)||1;
+    let cumulative=0;
+    paragraphs.forEach((item,index)=>{
+      const p=document.createElement('p');
+      if(item.em)p.className='em';
+      storyText.appendChild(p);
+      const start=cumulative/total*duration;
+      cumulative+=item.text.length;
+      const end=cumulative/total*duration;
+      const reveal=()=>{
+        if(token!==narrationToken||completed)return;
+        p.textContent=item.text;
+      };
+      timers.push(setTimeout(reveal,Math.max(0,start*1000)));
+      timers.push(setTimeout(()=>{if(p.textContent!==item.text)reveal()},Math.max(0,end*1000-100)));
+    });
+    voiceStatus.textContent='PLAYING RECORDED NARRATION';
+  };
+  audio.addEventListener('loadedmetadata',revealParagraphs,{once:true});
+  audio.addEventListener('ended',complete,{once:true});
+  audio.addEventListener('error',()=>{
+    if(token!==narrationToken)return;
+    stopActiveAudio();
+    if(!completed)narrateChapterWithSpeechSynthesis();
+  },{once:true});
+  playPromise?.then(()=>{if(token===narrationToken)voiceStatus.textContent='PLAYING RECORDED NARRATION'}).catch(()=>{
+    if(token!==narrationToken)return;
+    stopActiveAudio();
+    voiceStatus.textContent='AUDIO BLOCKED — USING SYSTEM VOICE';
+    narrateChapterWithSpeechSynthesis();
+  });
+  if(audio.readyState>=1)revealParagraphs();
+}
+function audioFilesForCurrentChapter(){
+  const direct=audioFiles.chapters[chapterIndex];
+  if(direct)return direct;
+  return null;
+}
+
 function renderChapter(){
   clearTimeout(chapterWatchdog);
   const item=chapters[chapterIndex];
@@ -293,7 +421,19 @@ function finishIntroSequence(){
     speakAriaMessage('Welcome to the station, Engineer. Power reserves are at eleven percent. Do not open the doors... not until I tell you to.');
   },850);
 }
+
 function speakAriaMessage(text){
+  if(audioFiles.aria){
+    const result=playAudioFile(audioFiles.aria,{volume:.96});
+    if(result){
+      result.playPromise?.then(()=>{voiceStatus.textContent='ARIA RECORDED TRANSMISSION'}).catch(()=>speakAriaWithSystemVoice(text));
+      result.audio.addEventListener('error',()=>speakAriaWithSystemVoice(text),{once:true});
+      return;
+    }
+  }
+  speakAriaWithSystemVoice(text);
+}
+function speakAriaWithSystemVoice(text){
   if(!('speechSynthesis' in window))return;
   const utterance=new SpeechSynthesisUtterance(text);
   refreshVoices();
@@ -302,9 +442,10 @@ function speakAriaMessage(text){
   if(selected)utterance.voice=selected;
   utterance.lang=selected?.lang||'en-US';utterance.volume=.9;utterance.rate=.9;utterance.pitch=1.08;
   ariaUtterance=utterance;
-  utterance.onstart=()=>{voiceStatus.textContent='ARIA TRANSMISSION'};
+  utterance.onstart=()=>{voiceStatus.textContent='ARIA SYSTEM VOICE'};
   try{speechSynthesis.speak(utterance)}catch(error){}
 }
+
 function advanceChapter(){
   if(!introSequenceActive)return;
   clearTimeout(chapterWatchdog);
@@ -331,7 +472,7 @@ function startExperience(){
   openIntro();
 }
 addEventListener('keydown',e=>{if(e.key==='Escape'&&introSequenceActive){clearTimeout(chapterWatchdog);stopSpeech();introSequenceActive=false;intro.classList.remove('open');aria.classList.remove('show')}});
-setTimeout(()=>{document.querySelector('#loading').classList.add('hide');setTimeout(startExperience,1050)},1250);
+setTimeout(()=>{document.querySelector('#loading').classList.add('hide');setTimeout(()=>audioAssetsReady.then(startExperience),1050)},1250);
 </script>
 </body>
 </html>
