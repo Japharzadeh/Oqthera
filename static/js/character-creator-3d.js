@@ -306,6 +306,36 @@ if(host){
     if(weather>.25){
       for(let i=0;i<5;i++)ellipsoid(avatar,[((i%2)*2-1)*(.23+i*.025),2.35+i*.13,.35],[.025+weather*.025,.035,.009],mat('dust'+i,0x887a66,.98));
     }
+    // Build pivot groups from the exact meshes used by the creator, so gameplay can animate the selected outfit and body without replacing its appearance.
+    const limbGroups={arms:[],legs:[]};
+    const makePivotGroup=(name,pivot)=>{
+      const group=new THREE.Group();
+      group.name=name;
+      group.position.set(...pivot);
+      avatar.add(group);
+      return group;
+    };
+    for(const side of [-1,1]){
+      const arm=makePivotGroup(side<0?'oqArmLeft':'oqArmRight',[side*.49,3.14,0]);
+      const leg=makePivotGroup(side<0?'oqLegLeft':'oqLegRight',[side*.19,1.88,0]);
+      for(const child of [...avatar.children]){
+        if(child===arm||child===leg||!child.isMesh)continue;
+        const x=child.position.x,y=child.position.y;
+        const armMesh=Math.sign(x||side)===side&&Math.abs(x)>=.55&&y>=1.55&&y<=2.96;
+        const legMesh=Math.sign(x||side)===side&&Math.abs(x)<=.29&&y>.1&&y<=1.95;
+        if(armMesh){
+          avatar.remove(child);
+          child.position.x-=arm.position.x;child.position.y-=arm.position.y;child.position.z-=arm.position.z;
+          arm.add(child);
+        }else if(legMesh){
+          avatar.remove(child);
+          child.position.x-=leg.position.x;child.position.y-=leg.position.y;child.position.z-=leg.position.z;
+          leg.add(child);
+        }
+      }
+      limbGroups.arms.push(arm);limbGroups.legs.push(leg);
+    }
+    avatar.userData.oqtheraLimbGroups=limbGroups;
     avatar.visible=true;importedAvatar.visible=false;
   }
   let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
