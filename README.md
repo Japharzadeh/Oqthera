@@ -33,3 +33,10 @@ In the repository settings, open **Pages**, select **Deploy from a branch**, cho
 - Repository: https://github.com/Japharzadeh/Oqthera
 - Title: LAST STATION: EARTH
 - Tagline: Civilization did not end. It went dark.
+
+
+## Cinematic narration
+
+The intro includes timed English narration for its four story chapters, plus a separate ARIA voice for transmissions. The on-screen story text remains visible as subtitles. Players can pause/resume, replay, skip the current voice playback, and adjust volume.
+
+Voice playback uses the browser's built-in Speech Synthesis API, so available voices and how closely they match the intended low cinematic narrator / distinct ARIA voice depend on the user's browser and operating system. Speech starts after an interaction with the page, and narration requires a browser that supports Speech Synthesis.
