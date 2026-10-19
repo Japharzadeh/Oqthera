@@ -99,16 +99,16 @@ if(host){
     ellipsoid(avatar,[0,2.75,.42],[.15,.27,.025],trim);
     for(const x of [-1,1]){
       ellipsoid(avatar,[x*.43,3.13,0],[.27,.31,.34],metal);
-      capsule(avatar,[x*.48,3.05,0],[x*.57,2.35,.01],.18,cloth,.145);
-      ellipsoid(avatar,[x*.57,2.33,.01],[.16,.21,.16],dark);
-      capsule(avatar,[x*.57,2.28,.01],[x*.61,1.77,.06],.115,metal,.105);
-      ellipsoid(avatar,[x*.61,1.7,.08],[.12,.15,.12],skinM);
-      for(let f=0;f<4;f++)capsule(avatar,[x*.61+(f-1.5)*.045,1.69,.12],[x*.61+(f-1.5)*.05,1.58,.14],.022,skinM,.017);
+      capsule(avatar,[x*.57,3.05,0],[x*.79,2.42,.01],.16,cloth,.135);
+      ellipsoid(avatar,[x*.79,2.4,.01],[.145,.18,.145],dark);
+      capsule(avatar,[x*.79,2.35,.01],[x*.84,1.86,.06],.105,metal,.095);
+      ellipsoid(avatar,[x*.84,1.76,.08],[.105,.14,.105],skinM);
+      for(let f=0;f<4;f++)capsule(avatar,[x*.84+(f-1.5)*.038,1.74,.12],[x*.84+(f-1.5)*.043,1.64,.14],.018,skinM,.014);
       // Shoulder armour and forearm bracer.
       ellipsoid(avatar,[x*.49,3.14,.015],[.25,.19,.3],cloth);
       ellipsoid(avatar,[x*.49,3.14,.27],[.19,.11,.045],trim);
-      ellipsoid(avatar,[x*.60,2.03,.055],[.14,.24,.15],dark);
-      capsule(avatar,[x*.60,2.13,.18],[x*.60,1.94,.18],.025,trim,.025);
+      ellipsoid(avatar,[x*.81,2.08,.055],[.125,.22,.13],dark);
+      capsule(avatar,[x*.81,2.16,.18],[x*.81,1.98,.18],.022,trim,.022);
     }
     // Belt, utility modules and trousers.
     ellipsoid(avatar,[0,1.95,0],[.53,.22,.34],dark);
@@ -130,7 +130,7 @@ if(host){
     capsule(avatar,[-.32,3.27,.23],[.0,2.3,.36],.035,metal);
     capsule(avatar,[.32,3.27,.23],[.0,2.3,.36],.035,metal);
     // Neck and head proportions react to face shape, age and presentation.
-    capsule(avatar,[0,3.35,0],[0,3.78,0],.19,skinM);
+    capsule(avatar,[0,3.34,0],[0,3.91,0],.205,skinM,.19);
     const faceShape=d['face-shape-choice']||'angular';
     const faceWidth=faceShape==='round'?.52:faceShape==='long'?.46:.48;
     const faceHeight=faceShape==='long'?.68:faceShape==='round'?.56:.61;
@@ -247,7 +247,7 @@ if(host){
     if(weather>.25){
       for(let i=0;i<5;i++)ellipsoid(avatar,[((i%2)*2-1)*(.23+i*.025),2.35+i*.13,.35],[.025+weather*.025,.035,.009],mat('dust'+i,0x887a66,.98));
     }
-    showExternalCharacter(gender);
+    avatar.visible=true;importedAvatar.visible=false;
   }
   let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
   const view=(name)=>{if(name==='front'){targetYaw=0;targetPitch=0;targetZoom=9.3}else if(name==='back'){targetYaw=Math.PI;targetPitch=0;targetZoom=9.3}else if(name==='face'){targetYaw=0;targetPitch=.03;targetZoom=6.1}else{targetYaw=0;targetPitch=0;targetZoom=9.3}};
