@@ -1,35 +1,75 @@
 # LAST STATION: EARTH
 
-**آخرین ایستگاه زمین** — a cinematic browser-game intro for Oqthera.
+A cinematic browser game with a FastAPI backend for save slots.
 
-A dark, atmospheric opening sequence set in 2089, after the collapse of civilization. The player awakens as the last energy engineer, hears from ARIA, and begins to question the story behind the world's silence.
+## Project layout
 
-## Current scope
-
-- Animated Three.js environment with a ruined skyline, broken transmission tower, drifting ash, fog, and atmospheric lighting
-- Cinematic title screen and responsive layout
-- Persian story intro presented in four chapters
-- ARIA transmission panel and interactive intro controls
-- No gameplay systems yet; this repository currently contains the intro experience only
+```text
+Oqthera/
+├── app.py
+├── requirements.txt
+├── .env.example
+├── templates/
+│   └── index.html
+├── static/
+│   └── audio/
+│       ├── chapter-01-opening.mp3
+│       ├── chapter-01-main.mp3
+│       ├── chapter-02.mp3
+│       ├── chapter-03-opening.mp3
+│       ├── chapter-03-main.mp3
+│       ├── chapter-04-opening.mp3
+│       └── chapter-04-main.mp3
+└── backend/
+    └── app/
+        ├── config.py
+        ├── database.py
+        ├── models.py
+        └── schemas.py
+```
 
 ## Run locally
 
-Because the page uses JavaScript modules, serve it over HTTP instead of opening `index.html` directly.
+Use Python 3.11 or newer.
 
 ```bash
-python -m http.server 8080
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Then open http://localhost:8080.
+Open http://127.0.0.1:8000. API documentation is available at http://127.0.0.1:8000/docs.
 
-Three.js is loaded from jsDelivr, and fonts are loaded from Google Fonts, so an internet connection is needed.
+On Windows, activate the environment with `.venv\\Scripts\\activate`.
 
-## GitHub Pages
+## API
 
-In the repository settings, open **Pages**, select **Deploy from a branch**, choose `main` and `/(root)`, then save.
+- `GET /api/health` — service health check
+- `GET /api/saves/{player_id}` — list a player's save slots
+- `GET /api/saves/{player_id}/{slot}` — load a save
+- `POST /api/saves/{player_id}/{slot}` — create or update a save
+- `DELETE /api/saves/{player_id}/{slot}` — delete a save
 
-## Project
+Save slots are numbered 1–3. SQLite is used by default; configure `DATABASE_URL` in `.env` to use another SQLAlchemy-supported database.
 
-- Repository: https://github.com/Japharzadeh/Oqthera
-- Title: LAST STATION: EARTH
-- Tagline: Civilization did not end. It went dark.
+## Audio and animation
+
+Narration files are served locally from `static/audio/`; the game no longer needs to query the GitHub API to discover its audio files. The intro starts after the player clicks or presses a key, satisfying browser audio-autoplay restrictions. Story headings animate word by word and narration text reveals with a cinematic character effect. Reduced-motion preferences are respected.
+
+## Security
+
+This is a development foundation. Authentication, authorization, rate limiting, migrations, and deployment secrets should be added before exposing save endpoints publicly. Until authentication exists, `player_id` is only an identifier and does not prove ownership of a save.
+
+
+## Character creator: custom 3D art pipeline
+
+The character creator currently includes an interactive procedural Three.js preview. Production-quality human models are a separate art deliverable and are not yet bundled.
+
+- Art direction and technical acceptance criteria: [docs/character-art-direction.md](docs/character-art-direction.md)
+- GLB asset catalog and skeleton contract: [static/characters/manifest.json](static/characters/manifest.json)
+- Asset package/export guidance: [static/characters/README.md](static/characters/README.md)
+- GLB loading and asset resolution module: [static/js/character-asset-pipeline.js](static/js/character-asset-pipeline.js)
+
+The pipeline targets separate male/female base meshes, gender-aware hair libraries, rig-compatible modular outfits, and optional accessories. Do not mark the custom asset package ready until the required GLB files have been authored, exported, and validated. The current procedural preview remains the fallback while the manifest status is `awaiting-custom-art-assets`.
