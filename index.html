@@ -150,6 +150,7 @@ function soundEffect(type='click'){
   }catch(error){console.warn('Sound effect failed',error)}
 }
 function stopSpeech(){
+  narrationToken++;
   if('speechSynthesis' in window)speechSynthesis.cancel();
   speechQueue=[];speechIndex=0;narratorUtterance=null;ariaUtterance=null;paused=false;
   voiceStatus.textContent='NARRATOR READY';
@@ -243,11 +244,13 @@ function narrateChapter(){
     if(item.em)p.className='em';
     storyText.appendChild(p);
     activeTyping=typeParagraph(p,item.text,token);
-    let boundarySeen=false;
+    let boundarySeen=false,paragraphCompleted=false;
     const completeParagraph=()=>{
-      if(token!==narrationToken)return;
+      if(token!==narrationToken||paragraphCompleted)return;
+      paragraphCompleted=true;
       if(activeTyping)activeTyping.finish();
       clearTimeout(guard);
+      clearTimeout(chapterWatchdog);
       setTimeout(nextParagraph,240);
     };
     // Speech and typing start together. Browser word-boundary events keep text aligned;
@@ -260,10 +263,9 @@ function narrateChapter(){
     guard=setTimeout(()=>{
       if(token!==narrationToken)return;
       if(activeTyping)activeTyping.finish();
-      // If speech is still active, let it finish; the watchdog prevents a stuck chapter.
-      if(!boundarySeen&&'speechSynthesis' in window&&speechSynthesis.speaking){
-        chapterWatchdog=setTimeout(completeParagraph,Math.max(2500,estimatedDuration*.5));
-      }else completeParagraph();
+      // Do not advance the visible text while the current sentence is still being spoken.
+      // onend normally advances; this longer watchdog is only for broken speech engines.
+      if(!paragraphCompleted)chapterWatchdog=setTimeout(completeParagraph,16000);
     },estimatedDuration);
   }
   nextParagraph();
