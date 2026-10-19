@@ -61,3 +61,15 @@ Narration files are served locally from `static/audio/`; the game no longer need
 ## Security
 
 This is a development foundation. Authentication, authorization, rate limiting, migrations, and deployment secrets should be added before exposing save endpoints publicly. Until authentication exists, `player_id` is only an identifier and does not prove ownership of a save.
+
+
+## Character creator: custom 3D art pipeline
+
+The character creator currently includes an interactive procedural Three.js preview. Production-quality human models are a separate art deliverable and are not yet bundled.
+
+- Art direction and technical acceptance criteria: [docs/character-art-direction.md](docs/character-art-direction.md)
+- GLB asset catalog and skeleton contract: [static/characters/manifest.json](static/characters/manifest.json)
+- Asset package/export guidance: [static/characters/README.md](static/characters/README.md)
+- GLB loading and asset resolution module: [static/js/character-asset-pipeline.js](static/js/character-asset-pipeline.js)
+
+The pipeline targets separate male/female base meshes, gender-aware hair libraries, rig-compatible modular outfits, and optional accessories. Do not mark the custom asset package ready until the required GLB files have been authored, exported, and validated. The current procedural preview remains the fallback while the manifest status is `awaiting-custom-art-assets`.
