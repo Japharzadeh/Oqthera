@@ -228,9 +228,37 @@ function updateHud(){
   document.querySelector('#hud-zone-state').textContent=oxygen<25?'AIR CRITICAL':'TOXIC ZONE';
   document.querySelector('#hud-zone-state').classList.toggle('hud-danger',oxygen<25);
 }
+let firstPersonHands=null;
+function buildFirstPersonHands(){
+  if(firstPersonHands){camera.remove(firstPersonHands);firstPersonHands.traverse(o=>{if(o.geometry)o.geometry.dispose()});firstPersonHands=null}
+  let skin='#e1b795',suit='#4d5d58';
+  try{const saved=JSON.parse(localStorage.getItem('oqthera.character')||'{}');skin=/^#[0-9a-f]{6}$/i.test(saved['skin-tone']||'')?saved['skin-tone']:'#e1b795';suit=/^#[0-9a-f]{6}$/i.test(saved['outfit-type']||'')?saved['outfit-type']:'#4d5d58'}catch{}
+  firstPersonHands=new THREE.Group();firstPersonHands.visible=false;camera.add(firstPersonHands);
+  const skinMaterial=new THREE.MeshStandardMaterial({color:skin,roughness:.78});
+  const sleeveMaterial=new THREE.MeshStandardMaterial({color:suit,roughness:.92});
+  const seamMaterial=new THREE.MeshStandardMaterial({color:0x303936,roughness:.8});
+  const makeEllipsoid=(pos,scale,material)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),material);m.position.set(...pos);m.scale.set(...scale);firstPersonHands.add(m);return m};
+  const makeSegment=(a,b,r1,r2,material)=>{
+    const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),dir=new THREE.Vector3().subVectors(vb,va);
+    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,dir.length(),10),material);
+    mesh.position.copy(va).add(vb).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());firstPersonHands.add(mesh);
+    makeEllipsoid(a,[r1,r1,r1],material);makeEllipsoid(b,[r2,r2,r2],material);
+  };
+  for(const side of [-1,1]){
+    makeSegment([side*.63,-.91,-.62],[side*.43,-.57,-.83],.105,.09,sleeveMaterial);
+    makeEllipsoid([side*.43,-.55,-.82],[.105,.09,.095],seamMaterial);
+    makeSegment([side*.43,-.54,-.84],[side*.34,-.39,-.98],.075,.065,skinMaterial);
+    makeEllipsoid([side*.32,-.35,-1.0],[.095,.105,.065],skinMaterial);
+    for(let f=0;f<4;f++){
+      const x=side*(.27+f*.035);
+      makeSegment([x,-.38,-1.035],[x+side*.008,-.45,-1.09],.018,.012,skinMaterial);
+    }
+    makeSegment([side*.25,-.34,-.98],[side*.20,-.40,-1.045],.022,.014,skinMaterial);
+  }
+}
 function beginGameplay(){
   gameActive=true;playerX=0;playerZ=4;playerYaw=0;playerPitch=0;health=100;energy=100;oxygen=100;lastGameTick=performance.now();
-  gameHud.classList.add('active');gameHint.classList.add('active');
+  gameHud.classList.add('active');gameHint.classList.add('active');buildFirstPersonHands();firstPersonHands.visible=true;
   document.querySelector('.content').style.display='none';
   document.querySelector('.meta').style.display='none';
   document.querySelector('.corner-code').style.display='none';
