@@ -226,7 +226,7 @@ const pressedKeys=new Set();
 const gameHud=document.querySelector('#game-hud');
 const gameHint=document.querySelector('#game-hint');
 let firstPersonHands=null,thirdPerson=false,playerRig=null,playerArms=[],playerLegs=[],playerKnees=[],playerHead=null;
-let jumpVelocity=0,playerY=0,isGrounded=true,isCrouching=false,walkPhase=0,gameStartedAt=0,gameClockHours=6,playerBodyYaw=Math.PI;
+let jumpVelocity=0,playerY=0,isGrounded=true,isCrouching=false,crouchBlend=0,jumpBlend=0,walkPhase=0,gameStartedAt=0,gameClockHours=6,playerBodyYaw=Math.PI;
 const PLAYER_RADIUS=.38,PLAYER_HEIGHT=1.78;
 function updateHud(){
   document.querySelector('#hud-coordinates').textContent='X '+playerX.toFixed(1).padStart(5,'0')+' / Z '+playerZ.toFixed(1).padStart(5,'0');
@@ -368,25 +368,51 @@ function animate(){
     const sway=moving&&isGrounded?Math.sin(walkPhase)*.11:0;
     if(firstPersonHands){firstPersonHands.position.set(sway*.35,bob+(isCrouching?-.28:0),0);firstPersonHands.rotation.z=moving?Math.sin(walkPhase)*.035:0;firstPersonHands.rotation.x=moving?Math.cos(walkPhase*2)*.035:0}
     if(playerRig){
-      playerRig.position.set(playerX,playerY+(isCrouching?-.075:0)+(moving&&isGrounded&&!isCrouching?Math.abs(Math.sin(walkPhase*2))*.025:0),playerZ);
+      const crouchTarget=isCrouching?1:0;
+      const airborneTarget=isGrounded?0:1;
+      crouchBlend+=(crouchTarget-crouchBlend)*(1-Math.exp(-dt*9));
+      jumpBlend+=(airborneTarget-jumpBlend)*(1-Math.exp(-dt*(airborneTarget?10:7)));
+      const gait=moving&&isGrounded?1:0;
+      const phase=walkPhase;
+      const stride=Math.sin(phase);
+      const lift=Math.max(0,Math.cos(phase));
+      const jumpTuck=jumpBlend*Math.min(1,Math.max(.18,Math.abs(jumpVelocity)/5.8));
+      playerRig.position.set(
+        playerX,
+        playerY-crouchBlend*.12+(gait*(1-crouchBlend)*Math.abs(Math.sin(phase*2))*.018),
+        playerZ
+      );
       const targetBodyYaw=moving?Math.atan2(dx,dz):Math.PI+playerYaw;
       const yawDelta=Math.atan2(Math.sin(targetBodyYaw-playerBodyYaw),Math.cos(targetBodyYaw-playerBodyYaw));
       playerBodyYaw+=yawDelta*(1-Math.exp(-dt*(moving?11:8)));
       playerRig.rotation.y=playerBodyYaw;
-      playerRig.rotation.x=isCrouching?-.035:(moving&&isGrounded?Math.sin(walkPhase)*.025:0);
+      playerRig.rotation.x=-crouchBlend*.095+jumpBlend*.055+gait*(1-crouchBlend)*Math.sin(phase*2)*.012;
       playerRig.scale.setScalar(.36);
-      const swing=moving&&isGrounded?Math.sin(walkPhase)*(sprinting?.95:isCrouching?.18:.72):0;
       playerLegs.forEach((leg,i)=>{
-        leg.rotation.x=isCrouching?-.42+(i===0?1:-1)*swing:(i===0?1:-1)*swing;
-        leg.rotation.z=moving&&isGrounded&&!isCrouching?Math.sin(walkPhase*2+i)*.025:0;
+        const side=i===0?1:-1;
+        const walkHip=side*stride*(sprinting?.66:.43);
+        const crouchHip=.42;
+        const jumpHip=side===1?-.2:-.2;
+        leg.rotation.x=walkHip*gait*(1-crouchBlend)*(1-jumpBlend)
+          +crouchHip*crouchBlend
+          +jumpHip*jumpTuck;
+        leg.rotation.z=gait*(1-crouchBlend)*Math.sin(phase)*.018*side;
       });
       playerKnees.forEach((knee,i)=>{
-        knee.rotation.x=isCrouching?1.02+(i===0?1:-1)*Math.max(0,swing)*.2:0;
-        knee.rotation.z=0;
+        const side=i===0?1:-1;
+        const walkKnee=(.12+lift*.48)*(gait*(1-crouchBlend)*(1-jumpBlend));
+        const crouchKnee=1.18;
+        const tuckKnee=.82;
+        knee.rotation.x=walkKnee+crouchKnee*crouchBlend+tuckKnee*jumpTuck;
+        knee.rotation.z=gait*(1-crouchBlend)*Math.max(0,stride)*.035*side;
       });
       playerArms.forEach((arm,i)=>{
-        arm.rotation.x=(i===0?-1:1)*swing*.82+(moving&&isGrounded?Math.sin(walkPhase*2+i)*.035:0);
-        arm.rotation.z=moving&&isGrounded?(i===0?-1:1)*Math.abs(Math.sin(walkPhase))*.025:0;
+        const side=i===0?-1:1;
+        const armSwing=-side*stride*(sprinting?.58:.36)*gait*(1-crouchBlend)*(1-jumpBlend);
+        const crouchBalance=-.28*crouchBlend;
+        const jumpReach=-.52*jumpTuck;
+        arm.rotation.x=armSwing+crouchBalance+jumpReach;
+        arm.rotation.z=side*(gait*(1-crouchBlend)*Math.abs(stride)*.018+jumpTuck*.08);
       });
     }
     if(thirdPerson){
