@@ -379,7 +379,7 @@ function animate(){
       const jumpTuck=jumpBlend*Math.min(1,Math.max(.18,Math.abs(jumpVelocity)/5.8));
       playerRig.position.set(
         playerX,
-        playerY-crouchBlend*.12+(gait*(1-crouchBlend)*Math.abs(Math.sin(phase*2))*.018),
+        playerY-crouchBlend*.035+(gait*(1-crouchBlend)*Math.abs(Math.sin(phase*2))*.012),
         playerZ
       );
       const targetBodyYaw=moving?Math.atan2(dx,dz):Math.PI+playerYaw;
@@ -390,21 +390,27 @@ function animate(){
       playerRig.scale.setScalar(.36);
       playerLegs.forEach((leg,i)=>{
         const side=i===0?1:-1;
-        const walkHip=side*stride*(sprinting?.66:.43);
+        const legPhase=phase+(i===0?0:Math.PI);
+        const legStride=Math.sin(legPhase);
+        const legLift=Math.max(0,Math.cos(legPhase));
+        const walkHip=legStride*(sprinting?.66:.43);
         const crouchHip=.42;
-        const jumpHip=side===1?-.2:-.2;
+        const jumpHip=-.2;
         leg.rotation.x=walkHip*gait*(1-crouchBlend)*(1-jumpBlend)
           +crouchHip*crouchBlend
           +jumpHip*jumpTuck;
-        leg.rotation.z=gait*(1-crouchBlend)*Math.sin(phase)*.018*side;
+        leg.rotation.z=gait*(1-crouchBlend)*Math.sin(legPhase)*.018*side;
+        leg.userData.oqWalkLift=legLift;
       });
       playerKnees.forEach((knee,i)=>{
         const side=i===0?1:-1;
-        const walkKnee=(.12+lift*.48)*(gait*(1-crouchBlend)*(1-jumpBlend));
+        const legPhase=phase+(i===0?0:Math.PI);
+        const legLift=Math.max(0,Math.cos(legPhase));
+        const walkKnee=(.08+legLift*.48)*(gait*(1-crouchBlend)*(1-jumpBlend));
         const crouchKnee=1.18;
         const tuckKnee=.82;
         knee.rotation.x=walkKnee+crouchKnee*crouchBlend+tuckKnee*jumpTuck;
-        knee.rotation.z=gait*(1-crouchBlend)*Math.max(0,stride)*.035*side;
+        knee.rotation.z=gait*(1-crouchBlend)*Math.max(0,Math.sin(legPhase))*.035*side;
       });
       playerArms.forEach((arm,i)=>{
         const side=i===0?-1:1;
