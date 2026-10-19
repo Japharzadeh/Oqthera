@@ -318,6 +318,23 @@ if(host){
   function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
   new ResizeObserver(resize).observe(host);resize();
   window.update3DCharacter=(data)=>buildCharacter(data);
+  window.createOqtheraGameplayCharacter=(data)=>{
+    const characterData=data||JSON.parse(localStorage.getItem('oqthera.character')||'{}');
+    buildCharacter(characterData);
+    const model=avatar.clone(true);
+    model.name='OqtheraSelectedCharacter';
+    model.scale.setScalar(0.36);
+    model.position.set(0,0,0);
+    model.rotation.set(0,Math.PI,0);
+    model.visible=true;
+    model.traverse(node=>{
+      if(node.isMesh){
+        node.castShadow=true;
+        node.receiveShadow=true;
+      }
+    });
+    return model;
+  };
   try{const saved=JSON.parse(localStorage.getItem('oqthera.character')||'null');if(saved)buildCharacter(saved);else buildCharacter({})}catch{buildCharacter({})}
   function animate(){requestAnimationFrame(animate);currentYaw+=(targetYaw-currentYaw)*.12;currentPitch+=(targetPitch-currentPitch)*.12;currentZoom+=(targetZoom-currentZoom)*.12;avatar.rotation.y=currentYaw;avatar.rotation.x=currentPitch;importedAvatar.rotation.y=currentYaw;importedAvatar.rotation.x=currentPitch;camera.position.z=currentZoom;camera.lookAt(0,2.55,0);renderer.render(scene,camera)}
   animate();
