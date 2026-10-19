@@ -102,8 +102,13 @@ if(host){
       capsule(avatar,[x*.57,3.05,0],[x*.79,2.42,.01],.16,cloth,.135);
       ellipsoid(avatar,[x*.79,2.4,.01],[.145,.18,.145],dark);
       capsule(avatar,[x*.79,2.35,.01],[x*.84,1.86,.06],.105,metal,.095);
-      ellipsoid(avatar,[x*.84,1.76,.08],[.105,.14,.105],skinM);
-      for(let f=0;f<4;f++)capsule(avatar,[x*.84+(f-1.5)*.038,1.74,.12],[x*.84+(f-1.5)*.043,1.64,.14],.018,skinM,.014);
+      // Narrow palm with separate fingers and a thumb; avoid a spherical hand shape.
+      ellipsoid(avatar,[x*.84,1.755,.075],[.067,.095,.043],skinM,20);
+      for(let f=0;f<4;f++){
+        const fx=x*.84+(f-1.5)*.032;
+        capsule(avatar,[fx,1.72,.105],[fx+(f-1.5)*.004,1.625-(Math.abs(f-1.5)*.012),.112],.012,skinM,.008);
+      }
+      capsule(avatar,[x*.84-x*.055,1.77,.075],[x*.84-x*.09,1.70,.09],.018,skinM,.012);
       // Shoulder armour and forearm bracer.
       ellipsoid(avatar,[x*.49,3.14,.015],[.25,.19,.3],cloth);
       ellipsoid(avatar,[x*.49,3.14,.27],[.19,.11,.045],trim);
@@ -143,24 +148,36 @@ if(host){
       ellipsoid(avatar,[side*.481,4.245,.026],[.021,.073,.018],mat('ear-inner',0x9d7562,.9),20);
       ellipsoid(avatar,[side*.468,4.245,.042],[.012,.043,.009],skinM,16);
     }
-    // Hair cap and style-specific silhouette.
+    // Hair uses a close-fitting scalp cap and tapered locks rather than round clumps.
     const hairStyle=d['hair-style']||'messy';
     if(hairStyle!=='shaved'){
-      const capY=hairStyle==='mohawk'?4.88:4.72;
-      ellipsoid(avatar,[0,capY,-.015],[hairStyle==='long'?.49:.49,hairStyle==='mohawk'?.28:.24,.44],hairM,28);
+      const capY=hairStyle==='mohawk'?4.78:4.69;
+      const cap=ellipsoid(avatar,[0,capY,-.025],[.455,.205,.405],hairM,32);
+      cap.scale.y=hairStyle==='mohawk'?.78:.78;
       if(hairStyle==='long'){
-        ellipsoid(avatar,[-.43,4.31,-.015],[.12,.49,.18],hairM);
-        ellipsoid(avatar,[.43,4.31,-.015],[.12,.49,.18],hairM);
+        capsule(avatar,[-.405,4.52,-.025],[-.435,3.96,-.015],.075,hairM,.052);
+        capsule(avatar,[.405,4.52,-.025],[.435,3.96,-.015],.075,hairM,.052);
       }else if(hairStyle==='mohawk'){
-        ellipsoid(avatar,[0,4.91,.08],[.14,.31,.27],hairM);
+        capsule(avatar,[0,4.75,.025],[0,5.02,.035],.085,hairM,.025);
+        capsule(avatar,[0,4.83,-.01],[0,4.99,-.015],.07,hairM,.022);
       }else if(hairStyle==='curly'){
-        for(let i=0;i<11;i++){const a=i/11*Math.PI*2;ellipsoid(avatar,[Math.cos(a)*.36,4.77+Math.sin(a)*.08,.05],[.12,.13,.12],hairM,12)}
+        for(let i=0;i<15;i++){
+          const a=i/15*Math.PI*2;
+          const x=Math.cos(a)*.34,z=.025+Math.sin(a)*.28;
+          const lock=capsule(avatar,[x,4.68,z],[x*.96,4.79+Math.sin(a*3)*.025,z*.94],.047,hairM,.025);
+          lock.rotation.z+=Math.cos(a)*.18;
+        }
       }else if(hairStyle==='messy'){
-        for(const p of [[-.3,4.84,.12],[-.12,4.92,.15],[.12,4.89,.15],[.3,4.82,.12]])ellipsoid(avatar,p,[.14,.13,.14],hairM,12);
+        capsule(avatar,[-.31,4.76,.11],[-.22,4.88,.14],.065,hairM,.022);
+        capsule(avatar,[-.13,4.77,.19],[-.04,4.94,.19],.06,hairM,.02);
+        capsule(avatar,[.06,4.78,.19],[.16,4.91,.16],.062,hairM,.021);
+        capsule(avatar,[.25,4.75,.13],[.32,4.84,.09],.06,hairM,.022);
       }else{
-        ellipsoid(avatar,[0,4.83,.12],[.39,.12,.24],hairM);
+        capsule(avatar,[-.32,4.76,.08],[.31,4.77,.08],.055,hairM,.045);
       }
-    }else ellipsoid(avatar,[0,4.73,0],[.45,.12,.41],hairM);
+    }else{
+      ellipsoid(avatar,[0,4.7,-.015],[.445,.105,.39],hairM,28);
+    }
     // Eyes, lids, brows and facial structure are actual 3D geometry.
     for(const side of [-1,1]){
       // Recessed eye sockets and shallow eye layers reduce the bulging look.
