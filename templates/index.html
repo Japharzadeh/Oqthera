@@ -44,7 +44,7 @@
 .hud-weapon-note{color:#c17b5b;font-size:9px}
 #game-hint{position:fixed;z-index:12;display:none;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 14px;background:#080d0de0;border:1px solid #4c5b54;color:#c5cec5;font:9px var(--mono);letter-spacing:.1em;text-align:center;white-space:nowrap}
 #game-hint.active{display:block}
-#game-hud .hud-danger{color:#d78066}
+.hud-clock{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 12px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(226,231,223,.12)}.hud-clock span{color:#87968e;font-size:8px;letter-spacing:.15em}.hud-clock strong{grid-row:span 2;font-size:22px;font-weight:500;letter-spacing:.08em;color:#f0d9bd}.hud-clock #hud-dayphase{color:#d39a72}#game-hud .hud-danger{color:#d78066}
 @media(max-width:600px){ #game-hud{top:12px;right:12px;width:min(265px,calc(100vw - 24px));gap:6px}.hud-panel{padding:9px 10px}.hud-stat{grid-template-columns:62px 1fr 32px;gap:7px}.hud-location{font-size:11px}#game-hint{bottom:12px;font-size:8px;max-width:calc(100vw - 24px);white-space:normal}}
 
 @media(max-width:700px){.topbar{padding:20px 6vw}.topbar .right-status{display:none}.frame{inset:66px 5vw 28px}.content{padding:18vh 8vw 13vh;align-items:center}.hero{width:100%}.title-en{font-size:clamp(39px,12vw,67px)}.title-row{gap:16px}.start-game{font-size:9px}.eyebrow{font-size:9px;margin-bottom:22px}.title-fa{font-size:18px}.tagline{font-size:14px;line-height:2.1}.actions{gap:17px}.primary{min-width:190px;padding:13px 17px}.meta{bottom:3vh;left:8vw;right:8vw}.coords{gap:14px}.coords div:nth-child(2){display:none}.scrollhint{font-size:8px}.corner-code{display:none}.intro{padding:6vw}.story-card{padding:28px 23px}.story-title{margin:25px 0 14px}.story-text{min-height:180px;font-size:14px}.story-bottom{align-items:flex-end}.story-next{min-width:128px;padding:11px 14px}.aria{padding:14px 5vw;gap:12px}.aria-icon{flex-basis:34px;height:34px}.aria-line{font-size:12px}.aria-dismiss{padding:8px}.story-top{font-size:9px}.story-top-actions{gap:8px}.skip-intro{padding:7px 8px;font-size:8px;letter-spacing:.04em}.voice-controls{gap:7px}.voice-controls button{padding:8px 9px}.voice-status{width:100%;margin:2px 0 0}.voice-controls input[type=range]{width:75px}}
@@ -74,6 +74,7 @@
     <div class="hud-heading"><span>LOCATION / 2089</span><span id="hud-zone-state">TOXIC ZONE</span></div>
     <div class="hud-location" id="hud-location">OUTER RUINS — SECTOR 01</div>
     <div class="hud-coordinates" id="hud-coordinates">X 000.0 / Z 000.0</div>
+    <div class="hud-clock"><span>LOCAL TIME</span><strong id="hud-time">06:00</strong><span id="hud-dayphase">SUNRISE</span></div>
   </div>
   <div class="hud-panel hud-vitals">
     <div class="hud-stat"><span class="hud-stat-label">HEALTH</span><div class="hud-track"><div class="hud-fill" id="health-fill"></div></div><span class="hud-stat-value" id="health-value">100%</span></div>
@@ -169,17 +170,22 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.15;
-scene.add(new THREE.HemisphereLight(0x80939a,0x111313,1.3));
+
 const moonLight=new THREE.DirectionalLight(0x9aa7a6,1.1);moonLight.position.set(-12,22,5);scene.add(moonLight);
+const hemiLight=new THREE.HemisphereLight(0x80939a,0x111313,1.3);scene.add(hemiLight);
+const sunLight=new THREE.DirectionalLight(0xffb77b,0);sunLight.position.set(0,30,-40);scene.add(sunLight);
+const sunMesh=new THREE.Mesh(new THREE.SphereGeometry(5.2,32,24),new THREE.MeshBasicMaterial({color:0xffc18a,toneMapped:false}));scene.add(sunMesh);
+const sunGlow=new THREE.Mesh(new THREE.SphereGeometry(8.8,32,24),new THREE.MeshBasicMaterial({color:0xf18a61,transparent:true,opacity:.25,side:THREE.BackSide,depthWrite:false,toneMapped:false}));scene.add(sunGlow);
 const emberLight=new THREE.PointLight(0xb55d39,8,38,2);emberLight.position.set(3,3,-5);scene.add(emberLight);
 const groundMat=new THREE.MeshStandardMaterial({color:0x252b29,roughness:1});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.25;scene.add(ground);
 const grid=new THREE.GridHelper(180,90,0x3b4845,0x202a28);grid.position.y=-.22;grid.material.transparent=true;grid.material.opacity=.16;scene.add(grid);
 const buildings=[];
+const collisionRects=[];
 const mats=[0x252c2d,0x303535,0x1b2224,0x3b3933,0x242a2a].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.94,metalness:.08}));
 const rust=new THREE.MeshStandardMaterial({color:0x674333,roughness:.9,metalness:.25});
-function building(x,z,w,h,d,rot=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;const base=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats[Math.floor(Math.random()*mats.length)]);base.position.y=h/2-.2;g.add(base);for(let y=1.2;y<h-0.3;y+=1.15){for(let xx=-w/2+.45;xx<w/2-.2;xx+=.9){if(Math.random()>.28){const win=new THREE.Mesh(new THREE.PlaneGeometry(.22,.35),new THREE.MeshBasicMaterial({color:Math.random()>.93?0x8b5941:0x101819,transparent:true,opacity:.8,side:THREE.DoubleSide}));win.position.set(xx,y-h/2+.2,d/2+.012);base.add(win)}}}if(Math.random()>.48){const roof=new THREE.Mesh(new THREE.BoxGeometry(w*.12,h*.25,d*.12),rust);roof.position.set((Math.random()-.5)*w,h+.15,(Math.random()-.5)*d);g.add(roof)}scene.add(g);buildings.push(g)}
-for(let i=0;i<100;i++){const side=Math.random()>.5?1:-1;const x=side*(7+Math.random()*62);const z=-15-Math.random()*100;const h=2+Math.pow(Math.random(),1.6)*20;building(x,z,1.8+Math.random()*5,h,2+Math.random()*5,(Math.random()-.5)*.12)}
+function building(x,z,w,h,d,rot=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;const ex=Math.abs(Math.cos(rot))*w/2+Math.abs(Math.sin(rot))*d/2;const ez=Math.abs(Math.sin(rot))*w/2+Math.abs(Math.cos(rot))*d/2;collisionRects.push({minX:x-ex,maxX:x+ex,minZ:z-ez,maxZ:z+ez});const base=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats[Math.floor(Math.random()*mats.length)]);base.position.y=h/2-.2;g.add(base);for(let y=1.2;y<h-0.3;y+=1.15){for(let xx=-w/2+.45;xx<w/2-.2;xx+=.9){if(Math.random()>.28){const win=new THREE.Mesh(new THREE.PlaneGeometry(.22,.35),new THREE.MeshBasicMaterial({color:Math.random()>.93?0x8b5941:0x101819,transparent:true,opacity:.8,side:THREE.DoubleSide}));win.position.set(xx,y-h/2+.2,d/2+.012);base.add(win)}}}if(Math.random()>.48){const roof=new THREE.Mesh(new THREE.BoxGeometry(w*.12,h*.25,d*.12),rust);roof.position.set((Math.random()-.5)*w,h+.15,(Math.random()-.5)*d);g.add(roof)}scene.add(g);buildings.push(g)}
+for(let i=0;i<100;i++){const side=Math.random()>.5?1:-1;const x=side*(8+Math.random()*62);const z=-15-Math.random()*100;const h=3.2+Math.pow(Math.random(),1.8)*9;building(x,z,3.5+Math.random()*4.5,h,3.5+Math.random()*4.5,(Math.random()-.5)*.08)}
 // A broken transmission tower, the last landmark visible through the haze.
 const tower=new THREE.Group();tower.position.set(1.8,0,-8);scene.add(tower);
 const metal=new THREE.MeshStandardMaterial({color:0x4a514d,metalness:.55,roughness:.65});
@@ -219,6 +225,9 @@ let gameActive=false,playerX=0,playerZ=4,playerYaw=0,playerPitch=0,health=100,en
 const pressedKeys=new Set();
 const gameHud=document.querySelector('#game-hud');
 const gameHint=document.querySelector('#game-hint');
+let firstPersonHands=null,thirdPerson=false,playerRig=null,playerArms=[],playerLegs=[],playerHead=null;
+let jumpVelocity=0,playerY=0,isGrounded=true,isCrouching=false,walkPhase=0,gameStartedAt=0,gameClockHours=6;
+const PLAYER_RADIUS=.38,PLAYER_HEIGHT=1.78;
 function updateHud(){
   document.querySelector('#hud-coordinates').textContent='X '+playerX.toFixed(1).padStart(5,'0')+' / Z '+playerZ.toFixed(1).padStart(5,'0');
   for(const [key,value] of [['health',health],['energy',energy],['oxygen',oxygen]]){
@@ -227,8 +236,10 @@ function updateHud(){
   }
   document.querySelector('#hud-zone-state').textContent=oxygen<25?'AIR CRITICAL':'TOXIC ZONE';
   document.querySelector('#hud-zone-state').classList.toggle('hud-danger',oxygen<25);
+  const totalMinutes=Math.floor(gameClockHours*60)%1440;
+  document.querySelector('#hud-time').textContent=String(Math.floor(totalMinutes/60)).padStart(2,'0')+':'+String(totalMinutes%60).padStart(2,'0');
+  document.querySelector('#hud-dayphase').textContent=gameClockHours<5?'NIGHT':gameClockHours<7?'SUNRISE':gameClockHours<17?'DAYLIGHT':gameClockHours<19?'SUNSET':'NIGHT';
 }
-let firstPersonHands=null;
 function buildFirstPersonHands(){
   if(firstPersonHands){camera.remove(firstPersonHands);firstPersonHands.traverse(o=>{if(o.geometry)o.geometry.dispose()});firstPersonHands=null}
   let skin='#e1b795',suit='#4d5d58';
@@ -249,62 +260,149 @@ function buildFirstPersonHands(){
     makeEllipsoid([side*.43,-.55,-.82],[.105,.09,.095],seamMaterial);
     makeSegment([side*.43,-.54,-.84],[side*.34,-.39,-.98],.075,.065,skinMaterial);
     makeEllipsoid([side*.32,-.35,-1.0],[.095,.105,.065],skinMaterial);
-    for(let f=0;f<4;f++){
-      const x=side*(.27+f*.035);
-      makeSegment([x,-.38,-1.035],[x+side*.008,-.45,-1.09],.018,.012,skinMaterial);
-    }
+    for(let f=0;f<4;f++){const x=side*(.27+f*.035);makeSegment([x,-.38,-1.035],[x+side*.008,-.45,-1.09],.018,.012,skinMaterial)}
     makeSegment([side*.25,-.34,-.98],[side*.20,-.40,-1.045],.022,.014,skinMaterial);
   }
 }
+function buildPlayerRig(){
+  if(playerRig)scene.remove(playerRig);
+  let skin='#e1b795',suit='#4d5d58',accent='#b66d4c';
+  try{const saved=JSON.parse(localStorage.getItem('oqthera.character')||'{}');skin=saved['skin-tone']||skin;suit=saved['outfit-type']||suit;accent=saved['accent-color']||accent}catch{}
+  playerRig=new THREE.Group();playerRig.visible=false;
+  const skinMat=new THREE.MeshStandardMaterial({color:skin,roughness:.8});
+  const suitMat=new THREE.MeshStandardMaterial({color:suit,roughness:.9});
+  const darkMat=new THREE.MeshStandardMaterial({color:0x242b29,roughness:.95});
+  const accentMat=new THREE.MeshStandardMaterial({color:accent,roughness:.85});
+  const makeMesh=(geo,mat,parent=playerRig)=>{const m=new THREE.Mesh(geo,mat);parent.add(m);return m};
+  const torso=makeMesh(new THREE.CapsuleGeometry(.27,.52,5,10),suitMat);torso.position.y=1.05;
+  const chest=makeMesh(new THREE.BoxGeometry(.43,.24,.12),accentMat);chest.position.set(0,1.15,.235);
+  const head=makeMesh(new THREE.SphereGeometry(.16,18,14),skinMat);head.position.y=1.59;playerHead=head;
+  const hairMat=new THREE.MeshStandardMaterial({color:0x554238,roughness:1});
+  const hair=makeMesh(new THREE.SphereGeometry(.165,16,10,0,Math.PI*2,0,Math.PI*.56),hairMat);hair.position.y=1.66;
+  playerArms=[];playerLegs=[];
+  for(const side of [-1,1]){
+    const arm=new THREE.Group();arm.position.set(side*.34,1.28,0);playerRig.add(arm);
+    const upper=makeMesh(new THREE.CapsuleGeometry(.075,.27,4,8),suitMat,arm);upper.position.y=-.18;upper.rotation.z=side*-.12;
+    const hand=makeMesh(new THREE.SphereGeometry(.065,10,8),skinMat,arm);hand.position.set(side*.015,-.39,.015);
+    playerArms.push(arm);
+    const leg=new THREE.Group();leg.position.set(side*.14,.72,0);playerRig.add(leg);
+    const thigh=makeMesh(new THREE.CapsuleGeometry(.09,.28,4,8),suitMat,leg);thigh.position.y=-.19;
+    const boot=makeMesh(new THREE.BoxGeometry(.17,.11,.28),darkMat,leg);boot.position.set(0,-.39,.07);
+    playerLegs.push(leg);
+  }
+  scene.add(playerRig);
+}
+function canOccupy(x,z){
+  for(const r of collisionRects){
+    const closestX=Math.max(r.minX,Math.min(x,r.maxX)),closestZ=Math.max(r.minZ,Math.min(z,r.maxZ));
+    const dx=x-closestX,dz=z-closestZ;
+    if(dx*dx+dz*dz<PLAYER_RADIUS*PLAYER_RADIUS)return false;
+  }
+  return true;
+}
+function setThirdPerson(value){
+  thirdPerson=value;
+  if(firstPersonHands)firstPersonHands.visible=!thirdPerson;
+  if(playerRig)playerRig.visible=thirdPerson;
+  gameHint.textContent=thirdPerson?'V — FIRST PERSON • WASD — MOVE • SPACE — JUMP • SHIFT — SPRINT • CTRL — CROUCH':'V — THIRD PERSON • WASD — MOVE • SPACE — JUMP • SHIFT — SPRINT • CTRL — CROUCH';
+}
+function updateWorldLighting(dt){
+  if(!gameActive)return;
+  gameClockHours=(6+((performance.now()-gameStartedAt)/1000)/150)%24;
+  const sunAngle=(gameClockHours-6)/12*Math.PI;
+  const sunHeight=Math.sin(sunAngle);
+  const daylight=THREE.MathUtils.smoothstep(sunHeight,-.16,.22);
+  const twilight=Math.max(0,1-Math.abs(sunHeight)*5);
+  const sunX=Math.cos(sunAngle)*95,sunY=Math.max(-22,sunHeight*88),sunZ=-65;
+  sunLight.position.set(playerX+sunX,sunY,playerZ+sunZ);
+  sunMesh.position.set(playerX+sunX*.92,Math.max(-10,sunY*.92),playerZ+sunZ*.92);
+  sunGlow.position.copy(sunMesh.position);
+  sunLight.intensity=.08+daylight*2.15+twilight*.32;
+  sunLight.color.setRGB(1,.54+.4*daylight,.29+.62*daylight);
+  hemiLight.intensity=.35+daylight*1.05+twilight*.2;
+  hemiLight.color.set(0x80939a).lerp(new THREE.Color(0xbed7e2),daylight);
+  hemiLight.groundColor.set(0x111313).lerp(new THREE.Color(0x5e6759),daylight);
+  const nightColor=new THREE.Color(0x080f19),dayColor=new THREE.Color(0x91a7ac),duskColor=new THREE.Color(0x9b5943);
+  const sky=nightColor.clone().lerp(dayColor,daylight).lerp(duskColor,twilight*.55);
+  scene.background.copy(sky);
+  scene.fog.color.copy(sky.clone().lerp(new THREE.Color(0x718078),daylight*.22));
+  scene.fog.density=.018+(.021*(1-daylight))+(twilight*.008);
+  sunMesh.visible=sunHeight>-.2;
+  sunGlow.visible=sunMesh.visible;
+  sunGlow.material.opacity=.08+daylight*.2+twilight*.3;
+  moonGroup.visible=gameClockHours<6.5||gameClockHours>18;
+  moonLight.intensity=.05+(1-daylight)*.72;
+  moonLight.position.set(playerX-32,25,playerZ+12);
+}
 function beginGameplay(){
-  gameActive=true;playerX=0;playerZ=4;playerYaw=0;playerPitch=0;health=100;energy=100;oxygen=100;lastGameTick=performance.now();
-  gameHud.classList.add('active');gameHint.classList.add('active');buildFirstPersonHands();firstPersonHands.visible=true;
-  document.querySelector('.content').style.display='none';
-  document.querySelector('.meta').style.display='none';
-  document.querySelector('.corner-code').style.display='none';
-  document.querySelector('.frame').style.display='none';
-  document.querySelector('.topbar').style.display='none';
-  document.querySelector('#aria').classList.remove('show');
-  scene.fog=new THREE.FogExp2(0x263a35,.035);
-  scene.background=new THREE.Color(0x101b19);
-  camera.position.set(playerX,1.72,playerZ);
-  updateHud();
+  gameActive=true;playerX=0;playerZ=4;playerYaw=0;playerPitch=0;health=100;energy=100;oxygen=100;lastGameTick=performance.now();gameStartedAt=performance.now();
+  gameHud.classList.add('active');gameHint.classList.add('active');buildFirstPersonHands();buildPlayerRig();setThirdPerson(false);
+  document.querySelector('.content').style.display='none';document.querySelector('.meta').style.display='none';document.querySelector('.corner-code').style.display='none';document.querySelector('.frame').style.display='none';document.querySelector('.topbar').style.display='none';document.querySelector('#aria').classList.remove('show');
+  updateHud();camera.position.set(playerX,1.72,playerZ);
 }
 addEventListener('keydown',e=>{
   if(!gameActive)return;
-  if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+  if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','ShiftLeft','ShiftRight','ControlLeft','ControlRight'].includes(e.code))e.preventDefault();
+  if(e.code==='KeyV'&&!e.repeat)setThirdPerson(!thirdPerson);
+  if(e.code==='Space'&&isGrounded&&!isCrouching){jumpVelocity=6.1;isGrounded=false}
   pressedKeys.add(e.code);
 });
 addEventListener('keyup',e=>pressedKeys.delete(e.code));
 addEventListener('blur',()=>pressedKeys.clear());
 canvas.addEventListener('click',()=>{if(gameActive&&document.pointerLockElement!==canvas)canvas.requestPointerLock?.()});
-document.addEventListener('mousemove',e=>{
-  if(!gameActive||document.pointerLockElement!==canvas)return;
-  playerYaw-=e.movementX*.0022;playerPitch=Math.max(-.62,Math.min(.62,playerPitch-e.movementY*.0018));
-});
-document.addEventListener('pointerlockchange',()=>{if(gameActive)gameHint.textContent=document.pointerLockElement===canvas?'W A S D / ARROWS — MOVE • MOUSE — LOOK • ESC — RELEASE MOUSE':'CLICK WORLD TO CAPTURE MOUSE • W A S D / ARROWS — MOVE'});
+document.addEventListener('mousemove',e=>{if(!gameActive||document.pointerLockElement!==canvas)return;playerYaw-=e.movementX*.0022;playerPitch=Math.max(-.62,Math.min(.62,playerPitch-e.movementY*.0018))});
+document.addEventListener('pointerlockchange',()=>{if(gameActive&&document.pointerLockElement!==canvas)gameHint.textContent='CLICK WORLD TO CAPTURE MOUSE • V — SWITCH VIEW • WASD — MOVE'});
 addEventListener('pointermove',e=>{pointerX=(e.clientX/innerWidth-.5)*1.4;pointerY=(e.clientY/innerHeight-.5)*.45});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7))});
-function animate(){requestAnimationFrame(animate);elapsed+=.004;
-if(gameActive){
-  const now=performance.now(),dt=Math.min((now-lastGameTick)/1000,.05);lastGameTick=now;
-  let forward=0,strafe=0;
-  if(pressedKeys.has('KeyW')||pressedKeys.has('ArrowUp'))forward+=1;
-  if(pressedKeys.has('KeyS')||pressedKeys.has('ArrowDown'))forward-=1;
-  if(pressedKeys.has('KeyA')||pressedKeys.has('ArrowLeft'))strafe-=1;
-  if(pressedKeys.has('KeyD')||pressedKeys.has('ArrowRight'))strafe+=1;
-  const moving=forward!==0||strafe!==0;
-  if(moving){const length=Math.hypot(forward,strafe);forward/=length;strafe/=length;const speed=energy>0?4.1:1.6;playerX+=(Math.sin(playerYaw)*forward+Math.cos(playerYaw)*strafe)*speed*dt;playerZ+=(-Math.cos(playerYaw)*forward+Math.sin(playerYaw)*strafe)*speed*dt;energy=Math.max(0,energy-dt*.7)}
-  else energy=Math.min(100,energy+dt*.32);
-  oxygen=Math.max(0,oxygen-dt*.22);if(oxygen<=0)health=Math.max(0,health-dt*1.8);
-  camera.position.set(playerX,1.72,playerZ);
-  const lookTarget=new THREE.Vector3(playerX+Math.sin(playerYaw)*12,1.72+Math.sin(playerPitch)*12,playerZ-Math.cos(playerYaw)*12);
-  camera.lookAt(lookTarget);
-  updateHud();
-}else{
-  targetX+=(pointerX-targetX)*.025;targetY+=(pointerY-targetY)*.025;
-  camera.position.x=targetX*2.5+Math.sin(elapsed*.35)*.28;camera.position.y=7-targetY*1.5+Math.sin(elapsed*.22)*.12;camera.lookAt(targetX*2,5,-25);
-}emberLight.intensity=7.4+Math.sin(elapsed*1.8)*1.1;beacon.intensity=2.3+Math.sin(elapsed*2.3)*.8;moonGroup.rotation.y=-.32+Math.sin(elapsed*.045)*.035;moonRing.rotation.z=Math.sin(elapsed*.035)*.035;skyObjects.rotation.y=Math.sin(elapsed*.025)*.018;lightColumns.forEach((column,i)=>{column.material.opacity=.025+(.02*(.5+.5*Math.sin(elapsed*.22+i*1.7)));column.position.x=-34+i*19+Math.sin(elapsed*.08+i)*.8});signalRings.forEach((ring,i)=>{const pulse=((elapsed*.18+i/3)%1);ring.scale.setScalar(.6+pulse*3.8);ring.material.opacity=(1-pulse)*.22});signalBeacon.intensity=.65+Math.sin(elapsed*1.5)*.35;const p=particleGeo.attributes.position;for(let i=0;i<particlesCount;i++){let y=p.array[i*3+1];y-=particleSpeeds[i]*.012;if(y<0)y=28;p.array[i*3+1]=y;p.array[i*3]+=.003*Math.sin(elapsed+i)}p.needsUpdate=true;renderer.render(scene,camera)}
+function animate(){
+  requestAnimationFrame(animate);elapsed+=.004;
+  if(gameActive){
+    const now=performance.now(),dt=Math.min((now-lastGameTick)/1000,.05);lastGameTick=now;
+    let forward=0,strafe=0;
+    if(pressedKeys.has('KeyW')||pressedKeys.has('ArrowUp'))forward+=1;
+    if(pressedKeys.has('KeyS')||pressedKeys.has('ArrowDown'))forward-=1;
+    if(pressedKeys.has('KeyA')||pressedKeys.has('ArrowLeft'))strafe-=1;
+    if(pressedKeys.has('KeyD')||pressedKeys.has('ArrowRight'))strafe+=1;
+    const moving=forward!==0||strafe!==0;
+    isCrouching=pressedKeys.has('ControlLeft')||pressedKeys.has('ControlRight');
+    const sprinting=moving&&!isCrouching&&(pressedKeys.has('ShiftLeft')||pressedKeys.has('ShiftRight'))&&energy>1;
+    const length=Math.hypot(forward,strafe)||1;forward/=length;strafe/=length;
+    const speed=isCrouching?1.35:sprinting?7.2:energy>0?4.1:1.6;
+    const dx=(Math.sin(playerYaw)*forward+Math.cos(playerYaw)*strafe)*speed*dt;
+    const dz=(-Math.cos(playerYaw)*forward+Math.sin(playerYaw)*strafe)*speed*dt;
+    if(canOccupy(playerX+dx,playerZ))playerX+=dx;
+    if(canOccupy(playerX,playerZ+dz))playerZ+=dz;
+    if(moving){energy=Math.max(0,energy-dt*(sprinting?2.1:.7))}else energy=Math.min(100,energy+dt*.32);
+    if(!isGrounded){jumpVelocity-=16*dt;playerY+=jumpVelocity*dt;if(playerY<=0){playerY=0;jumpVelocity=0;isGrounded=true}}
+    oxygen=Math.max(0,oxygen-dt*.22);if(oxygen<=0)health=Math.max(0,health-dt*1.8);
+    if(moving)walkPhase+=dt*(sprinting?13:isCrouching?5:8);
+    const bob=moving&&isGrounded?Math.sin(walkPhase*2)*.045*(sprinting?1.35:1):0;
+    const sway=moving&&isGrounded?Math.sin(walkPhase)*.11:0;
+    if(firstPersonHands){firstPersonHands.position.set(sway*.35,bob+(isCrouching?-.28:0),0);firstPersonHands.rotation.z=moving?Math.sin(walkPhase)*.035:0;firstPersonHands.rotation.x=moving?Math.cos(walkPhase*2)*.035:0}
+    if(playerRig){
+      playerRig.position.set(playerX,playerY,playerZ);playerRig.rotation.y=playerYaw;
+      playerRig.scale.y=isCrouching?.68:1;
+      const swing=moving?Math.sin(walkPhase)*(sprinting?.85:.55):0;
+      playerLegs.forEach((leg,i)=>{leg.rotation.x=(i===0?1:-1)*swing});
+      playerArms.forEach((arm,i)=>{arm.rotation.x=(i===0?-1:1)*swing*.8+(moving?Math.sin(walkPhase*2+i)*.04:0)});
+    }
+    if(thirdPerson){
+      const distance=isCrouching?3.2:4.1;
+      const desiredX=playerX-Math.sin(playerYaw)*distance,desiredZ=playerZ+Math.cos(playerYaw)*distance;
+      camera.position.lerp(new THREE.Vector3(desiredX,playerY+(isCrouching?1.35:2.05),desiredZ),1-Math.exp(-dt*8));
+      camera.lookAt(playerX,playerY+(isCrouching?1.05:1.35)+Math.sin(playerPitch)*2,playerZ);
+    }else{
+      camera.position.set(playerX,playerY+(isCrouching?1.15:1.68)+bob,playerZ);
+      const lookTarget=new THREE.Vector3(playerX+Math.sin(playerYaw)*12,playerY+(isCrouching?1.15:1.68)+Math.sin(playerPitch)*12,playerZ-Math.cos(playerYaw)*12);
+      camera.lookAt(lookTarget);
+    }
+    updateWorldLighting(dt);updateHud();
+  }else{
+    targetX+=(pointerX-targetX)*.025;targetY+=(pointerY-targetY)*.025;
+    camera.position.x=targetX*2.5+Math.sin(elapsed*.35)*.28;camera.position.y=7-targetY*1.5+Math.sin(elapsed*.22)*.12;camera.lookAt(targetX*2,5,-25);
+  }
+  emberLight.intensity=7.4+Math.sin(elapsed*1.8)*1.1;beacon.intensity=2.3+Math.sin(elapsed*2.3)*.8;moonGroup.rotation.y=-.32+Math.sin(elapsed*.045)*.035;moonRing.rotation.z=Math.sin(elapsed*.035)*.035;skyObjects.rotation.y=Math.sin(elapsed*.025)*.018;lightColumns.forEach((column,i)=>{column.material.opacity=.025+(.02*(.5+.5*Math.sin(elapsed*.22+i*1.7)));column.position.x=-34+i*19+Math.sin(elapsed*.08+i)*.8});signalRings.forEach((ring,i)=>{const pulse=((elapsed*.18+i/3)%1);ring.scale.setScalar(.6+pulse*3.8);ring.material.opacity=(1-pulse)*.22});signalBeacon.intensity=.65+Math.sin(elapsed*1.5)*.35;const p=particleGeo.attributes.position;for(let i=0;i<particlesCount;i++){let y=p.array[i*3+1];y-=particleSpeeds[i]*.012;if(y<0)y=28;p.array[i*3+1]=y;p.array[i*3]+=.003*Math.sin(elapsed+i)}p.needsUpdate=true;renderer.render(scene,camera);
+}
 animate();
 setTimeout(()=>document.querySelector('#loading').classList.add('hide'),1250);
 const chapters=[
