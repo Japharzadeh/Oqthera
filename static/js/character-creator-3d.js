@@ -137,8 +137,12 @@ if(host){
     const headY=4.27;
     const head=ellipsoid(avatar,[0,headY,0],[faceWidth,faceHeight,.43],skinM,32);
     if(faceShape==='angular')head.scale.set(faceWidth*.94,faceHeight,.43);
-    ellipsoid(avatar,[-.475,4.25,0],[.105,.17,.13],skinM);
-    ellipsoid(avatar,[.475,4.25,0],[.105,.17,.13],skinM);
+    // Small, anatomically placed ears with a subtle inner fold.
+    for(const side of [-1,1]){
+      ellipsoid(avatar,[side*.455,4.245,-.005],[.052,.12,.058],skinM,24);
+      ellipsoid(avatar,[side*.481,4.245,.026],[.021,.073,.018],mat('ear-inner',0x9d7562,.9),20);
+      ellipsoid(avatar,[side*.468,4.245,.042],[.012,.043,.009],skinM,16);
+    }
     // Hair cap and style-specific silhouette.
     const hairStyle=d['hair-style']||'messy';
     if(hairStyle!=='shaved'){
@@ -159,11 +163,13 @@ if(host){
     }else ellipsoid(avatar,[0,4.73,0],[.45,.12,.41],hairM);
     // Eyes, lids, brows and facial structure are actual 3D geometry.
     for(const side of [-1,1]){
-      ellipsoid(avatar,[side*.19,4.36,.377],[.12,.073,.055],skinM,20);
-      ellipsoid(avatar,[side*.19,4.36,.421],[.088,.052,.036],eyeWhite,20);
-      ellipsoid(avatar,[side*.19,4.36,.45],[.042,.043,.022],iris,16);
-      ellipsoid(avatar,[side*.19,4.36,.469],[.021,.027,.012],pupil,12);
-      ellipsoid(avatar,[side*.19,4.39,.46],[.012,.012,.008],mat('eye-glint',0xffffff,.2),8);
+      // Recessed eye sockets and shallow eye layers reduce the bulging look.
+      ellipsoid(avatar,[side*.19,4.36,.378],[.105,.058,.023],mat('eye-socket',0x9f7b65,.92),20);
+      ellipsoid(avatar,[side*.19,4.36,.394],[.079,.034,.014],eyeWhite,20);
+      ellipsoid(avatar,[side*.19,4.36,.405],[.035,.029,.009],iris,16);
+      ellipsoid(avatar,[side*.19,4.36,.412],[.016,.02,.006],pupil,12);
+      ellipsoid(avatar,[side*.19,4.36,.415],[.006,.007,.003],mat('eye-glint',0xffffff,.2),8);
+      curve(avatar,[[side*.29,4.36,.389],[side*.19,4.397,.404],[side*.09,4.36,.389]],.008,skinM);
       const browStyle=d['brow-style']||'natural';
       curve(avatar,[[side*.09,4.48,.39],[side*.19,4.51+(browStyle==='strong'?.025:0),.4],[side*.29,4.48,.38]],browStyle==='soft'?.018:browStyle==='strong'?.035:.026,hairM);
     }
