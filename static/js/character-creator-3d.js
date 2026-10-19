@@ -148,35 +148,70 @@ if(host){
       ellipsoid(avatar,[side*.481,4.245,.026],[.021,.073,.018],mat('ear-inner',0x9d7562,.9),20);
       ellipsoid(avatar,[side*.468,4.245,.042],[.012,.043,.009],skinM,16);
     }
-    // A true upper-hemisphere hairline follows the skull instead of forming a helmet.
+    // Build each hairstyle from its own silhouette; no shared helmet-like scalp mesh.
     const hairStyle=d['hair-style']||'messy';
-    const scalpGeometry=new THREE.SphereGeometry(1,32,20,0,Math.PI*2,0,Math.PI*.56);
-    addMesh(scalpGeometry,hairM,avatar,[0,4.60,-.025],[.455,.30,.405]);
-    if(hairStyle!=='shaved'){
-      if(hairStyle==='long'){
-        capsule(avatar,[-.39,4.57,-.005],[-.43,4.05,-.015],.065,hairM,.045);
-        capsule(avatar,[.39,4.57,-.005],[.43,4.05,-.015],.065,hairM,.045);
-        capsule(avatar,[-.34,4.53,.13],[-.36,4.12,.12],.045,hairM,.028);
-        capsule(avatar,[.34,4.53,.13],[.36,4.12,.12],.045,hairM,.028);
-      }else if(hairStyle==='mohawk'){
-        capsule(avatar,[0,4.72,.025],[0,5.00,.035],.07,hairM,.018);
-        capsule(avatar,[0,4.82,-.01],[0,4.98,-.015],.052,hairM,.014);
-      }else if(hairStyle==='curly'){
-        for(let i=0;i<17;i++){
-          const a=i/17*Math.PI*2;
-          const x=Math.cos(a)*.34,z=.025+Math.sin(a)*.28;
-          capsule(avatar,[x,4.64,z],[x*.97,4.75+Math.sin(a*3)*.025,z*.94],.035,hairM,.019);
+    const hairLock=(a,b,r1,r2=r1)=>capsule(avatar,a,b,r1,hairM,r2);
+    const hairCurl=(x,y,z,rx,ry=rx,rz=rx)=>ellipsoid(avatar,[x,y,z],[rx,ry,rz],hairM,16);
+    if(hairStyle==='shaved'){
+      // A shaved head deliberately has no hair geometry.
+    }else if(hairStyle==='mohawk'){
+      // Narrow raised ridge with tapered front and rear ends.
+      hairLock([0,4.57,-.24],[0,4.76,-.12],.055,.045);
+      hairLock([0,4.76,-.12],[0,4.82,.10],.065,.052);
+      hairLock([0,4.82,.10],[0,4.69,.27],.052,.018);
+      for(const side of [-1,1]){
+        hairLock([side*.27,4.54,-.08],[side*.24,4.63,.12],.018,.012);
+      }
+    }else if(hairStyle==='curly'){
+      // Individual rounded curls create a textured silhouette instead of a smooth cap.
+      for(let row=0;row<3;row++){
+        const count=row===0?15:row===1?12:8;
+        for(let i=0;i<count;i++){
+          const a=i/count*Math.PI*2+(row%2)*.16;
+          const radius=row===0?.31:row===1?.235:.13;
+          const x=Math.cos(a)*radius;
+          const z=Math.sin(a)*radius*.83-.015;
+          const y=row===0?4.53:row===1?4.67:4.76;
+          hairCurl(x,y+Math.cos(a*3+row)*.018,z,.065,.066,.061);
         }
-        for(const p of [[-.25,4.77,.13],[-.09,4.81,.18],[.09,4.81,.18],[.25,4.77,.13]]){
-          capsule(avatar,p,[p[0]*.92,p[1]+.055,p[2]-.015],.035,hairM,.018);
+      }
+      hairCurl(-.16,4.78,.17,.058,.06,.052);
+      hairCurl(0,4.81,.19,.06,.063,.055);
+      hairCurl(.16,4.78,.17,.058,.06,.052);
+    }else if(hairStyle==='long'){
+      // Swept top locks flow into separate side lengths.
+      hairLock([-.34,4.55,-.02],[-.22,4.76,.08],.075,.065);
+      hairLock([-.22,4.76,.08],[.02,4.82,.11],.07,.055);
+      hairLock([.02,4.82,.11],[.25,4.73,.06],.06,.048);
+      hairLock([.25,4.73,.06],[.34,4.55,-.01],.052,.045);
+      for(const side of [-1,1]){
+        hairLock([side*.35,4.57,-.015],[side*.43,4.28,-.015],.07,.055);
+        hairLock([side*.43,4.28,-.015],[side*.41,3.99,-.025],.055,.035);
+        hairLock([side*.30,4.58,.13],[side*.34,4.27,.14],.048,.038);
+        hairLock([side*.34,4.27,.14],[side*.32,4.04,.12],.038,.025);
+      }
+    }else if(hairStyle==='messy'){
+      // Uneven swept locks with visible gaps and varied directions.
+      hairLock([-.34,4.52,-.04],[-.24,4.72,.06],.065,.045);
+      hairLock([-.24,4.72,.06],[-.30,4.83,.08],.045,.012);
+      hairLock([-.20,4.59,.16],[-.10,4.78,.20],.064,.042);
+      hairLock([-.10,4.78,.20],[-.02,4.88,.14],.042,.012);
+      hairLock([-.04,4.60,.20],[.10,4.78,.19],.06,.042);
+      hairLock([.10,4.78,.19],[.20,4.84,.10],.042,.012);
+      hairLock([.15,4.58,.15],[.29,4.71,.08],.06,.04);
+      hairLock([.29,4.71,.08],[.34,4.76,.01],.04,.012);
+      hairLock([-.28,4.60,-.12],[-.16,4.74,-.20],.05,.025);
+      hairLock([.04,4.62,-.17],[.20,4.73,-.15],.05,.024);
+    }else{
+      // Short textured crop: many small fitted locks, not a single solid shell.
+      for(let row=0;row<4;row++){
+        const count=row===0?13:row===1?11:row===2?8:5;
+        for(let i=0;i<count;i++){
+          const x=(i/(count-1)-.5)*(row===0?.62:row===1?.50:row===2?.34:.18);
+          const z=row===0?-.12:row===1?.055:row===2?.15:.19;
+          const y=row===0?4.52:row===1?4.66:row===2?4.73:4.76;
+          hairLock([x,y-.035,z-.015],[x+.018,y+.025,z+.005],.035,.024);
         }
-      }else if(hairStyle==='messy'){
-        capsule(avatar,[-.31,4.70,.11],[-.25,4.82,.14],.045,hairM,.014);
-        capsule(avatar,[-.15,4.73,.19],[-.08,4.88,.19],.043,hairM,.013);
-        capsule(avatar,[.03,4.74,.19],[.11,4.87,.16],.043,hairM,.013);
-        capsule(avatar,[.22,4.70,.14],[.29,4.79,.09],.042,hairM,.014);
-      }else{
-        capsule(avatar,[-.30,4.69,.08],[.29,4.70,.08],.035,hairM,.028);
       }
     }
     // Eyes, lids, brows and facial structure are actual 3D geometry.
