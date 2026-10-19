@@ -394,7 +394,7 @@ function animate(){
         const legStride=Math.sin(legPhase);
         const legLift=Math.max(0,Math.cos(legPhase));
         const walkHip=legStride*(sprinting?.66:.43);
-        const crouchHip=.42;
+        const crouchHip=i===0?.16:.48;
         const jumpHip=-.2;
         leg.rotation.x=walkHip*gait*(1-crouchBlend)*(1-jumpBlend)
           +crouchHip*crouchBlend
@@ -407,7 +407,7 @@ function animate(){
         const legPhase=phase+(i===0?0:Math.PI);
         const legLift=Math.max(0,Math.cos(legPhase));
         const walkKnee=(.08+legLift*.48)*(gait*(1-crouchBlend)*(1-jumpBlend));
-        const crouchKnee=1.18;
+        const crouchKnee=i===0?.12:.96;
         const tuckKnee=.82;
         knee.rotation.x=walkKnee+crouchKnee*crouchBlend+tuckKnee*jumpTuck;
         knee.rotation.z=gait*(1-crouchBlend)*Math.max(0,Math.sin(legPhase))*.035*side;
