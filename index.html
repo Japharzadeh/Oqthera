@@ -92,23 +92,76 @@ const chapters=[
 let chapterIndex=0;
 const intro=document.querySelector('#intro'),storyTitle=document.querySelector('#story-title'),storyText=document.querySelector('#story-text'),storyCount=document.querySelector('#story-count'),next=document.querySelector('#story-next'),back=document.querySelector('#story-back'),aria=document.querySelector('#aria');
 const voiceToggle=document.querySelector('#voice-toggle'),voiceSkip=document.querySelector('#voice-skip'),voiceVolume=document.querySelector('#voice-volume'),voiceStatus=document.querySelector('#voice-status');
-let narratorUtterance=null,ariaUtterance=null,paused=false,voiceSkipped=false,activeSpeaker='narrator',availableVoices=[];
+let narratorUtterance=null,ariaUtterance=null,paused=false,voiceSkipped=false,activeSpeaker='narrator',availableVoices=[],speechQueue=[],speechIndex=0,activeText='',audioContext=null,masterGain=null,ambienceStarted=false;
 function refreshVoices(){availableVoices=window.speechSynthesis?window.speechSynthesis.getVoices():[]}
 if('speechSynthesis' in window){refreshVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshVoices)}
-function chooseVoice(kind){const english=availableVoices.filter(v=>/^en(-|_)/i.test(v.lang));if(!english.length)return null;const preferred=kind==='aria'?/(female|woman|zira|samantha|karen|susan|victoria|aria|jenny|ava|serena)/i:/(male|man|david|mark|guy|daniel|alex|fred|tom|james|oliver|george)/i;return english.find(v=>preferred.test(v.name))||english.find(v=>/^en-US/i.test(v.lang))||english[0]}
-function stopSpeech(){if('speechSynthesis' in window)speechSynthesis.cancel();narratorUtterance=null;ariaUtterance=null;paused=false;voiceToggle.textContent='توقف صدا';voiceStatus.textContent='NARRATOR READY'}
-function speak(text,kind='narrator'){if(!('speechSynthesis' in window)){voiceStatus.textContent='VOICE NOT SUPPORTED';return}speechSynthesis.cancel();paused=false;activeSpeaker=kind;voiceSkipped=false;const utterance=new SpeechSynthesisUtterance(text);const voice=chooseVoice(kind);if(voice)utterance.voice=voice;utterance.lang=voice?.lang||'en-US';utterance.volume=Number(voiceVolume.value);utterance.rate=kind==='aria'?0.96:0.84;utterance.pitch=kind==='aria'?1.12:0.72;utterance.onstart=()=>{voiceStatus.textContent=kind==='aria'?'ARIA TRANSMISSION':'CINEMATIC NARRATOR';voiceToggle.textContent='مکث صدا'};utterance.onend=()=>{if(kind==='narrator')voiceStatus.textContent='NARRATION COMPLETE';else voiceStatus.textContent='ARIA TRANSMISSION COMPLETE';voiceToggle.textContent='پخش دوباره';paused=false};utterance.onerror=(event)=>{if(event.error!=='canceled'&&event.error!=='interrupted')voiceStatus.textContent='VOICE PLAYBACK ERROR'};if(kind==='aria')ariaUtterance=utterance;else narratorUtterance=utterance;speechSynthesis.speak(utterance)}
+function chooseVoice(kind){const english=availableVoices.filter(v=>/^en([-_]|$)/i.test(v.lang));if(!english.length)return null;const preferred=kind==='aria'?/(female|woman|zira|samantha|karen|susan|victoria|aria|jenny|ava|serena)/i:/(male|man|david|mark|guy|daniel|alex|fred|tom|james|oliver|george)/i;return english.find(v=>preferred.test(v.name))||english.find(v=>/^en-US/i.test(v.lang))||english[0]}
+function ensureAudio(){
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)return;
+  try{
+    if(!audioContext){audioContext=new AudioContextClass();masterGain=audioContext.createGain();masterGain.gain.value=.22;masterGain.connect(audioContext.destination)}
+    if(audioContext.state==='suspended')audioContext.resume();
+    if(ambienceStarted)return;
+    ambienceStarted=true;
+    const drone=audioContext.createOscillator(),droneGain=audioContext.createGain(),droneFilter=audioContext.createBiquadFilter();
+    drone.type='sawtooth';drone.frequency.value=48;droneFilter.type='lowpass';droneFilter.frequency.value=115;droneGain.gain.value=.045;
+    drone.connect(droneFilter);droneFilter.connect(droneGain);droneGain.connect(masterGain);drone.start();
+    const length=audioContext.sampleRate*2,buffer=audioContext.createBuffer(1,length,audioContext.sampleRate),data=buffer.getChannelData(0);
+    for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*.35;
+    const wind=audioContext.createBufferSource(),windFilter=audioContext.createBiquadFilter(),windGain=audioContext.createGain();
+    wind.buffer=buffer;wind.loop=true;windFilter.type='lowpass';windFilter.frequency.value=380;windGain.gain.value=.14;wind.connect(windFilter);windFilter.connect(windGain);windGain.connect(masterGain);wind.start();
+    const lfo=audioContext.createOscillator(),lfoGain=audioContext.createGain();lfo.frequency.value=.09;lfoGain.gain.value=90;lfo.connect(lfoGain);lfoGain.connect(windFilter.frequency);lfo.start();
+  }catch(error){console.warn('Ambient audio could not start',error)}
+}
+function soundEffect(type='click'){
+  if(!audioContext||!masterGain)return;
+  try{
+    const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();
+    const settings={click:[620,.045,'sine'],confirm:[440,.18,'sine'],signal:[880,.32,'triangle'],transition:[170,.24,'sine']};
+    const [frequency,duration,wave]=settings[type]||settings.click;
+    osc.type=wave;osc.frequency.setValueAtTime(frequency,now);
+    if(type==='signal')osc.frequency.exponentialRampToValueAtTime(440,now+duration);
+    if(type==='transition')osc.frequency.exponentialRampToValueAtTime(75,now+duration);
+    gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(type==='click'?.045:.12,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+    osc.connect(gain);gain.connect(masterGain);osc.start(now);osc.stop(now+duration+.02);
+  }catch(error){console.warn('Sound effect failed',error)}
+}
+function stopSpeech(){if('speechSynthesis' in window)speechSynthesis.cancel();speechQueue=[];speechIndex=0;narratorUtterance=null;ariaUtterance=null;paused=false;voiceToggle.textContent='توقف صدا';voiceStatus.textContent='NARRATOR READY'}
+function speak(text,kind='narrator'){
+  ensureAudio();
+  if(!('speechSynthesis' in window)){voiceStatus.textContent='VOICE NOT SUPPORTED';return}
+  speechSynthesis.cancel();speechQueue=[];speechIndex=0;paused=false;activeSpeaker=kind;activeText=text;voiceSkipped=false;
+  speechQueue=(text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[text]).map(part=>part.trim()).filter(Boolean);
+  refreshVoices();
+  if(!availableVoices.length)voiceStatus.textContent='STARTING SYSTEM VOICE…';
+  playNextSpeechChunk();
+}
+function playNextSpeechChunk(){
+  if(voiceSkipped||paused||speechIndex>=speechQueue.length){
+    if(speechIndex>=speechQueue.length&&!voiceSkipped){voiceStatus.textContent='aria'===activeSpeaker?'ARIA TRANSMISSION COMPLETE':'NARRATION COMPLETE';voiceToggle.textContent='پخش دوباره'}
+    return;
+  }
+  const kind=activeSpeaker,chunk=speechQueue[speechIndex++],utterance=new SpeechSynthesisUtterance(chunk),voice=chooseVoice(kind);
+  if(voice)utterance.voice=voice;
+  utterance.lang=voice?.lang||'en-US';utterance.volume=Number(voiceVolume.value);utterance.rate=kind==='aria'?.94:.88;utterance.pitch=kind==='aria'?1.08:.82;
+  if(kind==='aria')ariaUtterance=utterance;else narratorUtterance=utterance;
+  utterance.onstart=()=>{voiceStatus.textContent=kind==='aria'?'ARIA TRANSMISSION':'CINEMATIC NARRATOR';voiceToggle.textContent='مکث صدا'};
+  utterance.onend=()=>{if(!paused&&!voiceSkipped)playNextSpeechChunk()};
+  utterance.onerror=(event)=>{if(event.error==='canceled'||event.error==='interrupted')return;if(speechIndex<speechQueue.length){setTimeout(playNextSpeechChunk,120)}else{voiceStatus.textContent=availableVoices.length?'VOICE PLAYBACK ERROR':'NO SYSTEM VOICE AVAILABLE';voiceToggle.textContent='تلاش دوباره'}};
+  try{speechSynthesis.speak(utterance)}catch(error){voiceStatus.textContent='VOICE PLAYBACK ERROR';voiceToggle.textContent='تلاش دوباره'}
+}
 function chapterSpeech(){const c=chapters[chapterIndex];if(c&&c.narration)speak(c.narration,'narrator')}
 function renderChapter(shouldSpeak=true){const c=chapters[chapterIndex];storyTitle.textContent=c.title;storyText.innerHTML=c.text;storyCount.textContent='TRANSMISSION 0'+(chapterIndex+1)+' / 04';document.querySelectorAll('#progress span').forEach((el,i)=>el.classList.toggle('active',i===chapterIndex));back.style.visibility=chapterIndex===0?'hidden':'visible';next.querySelector('span').textContent=chapterIndex===chapters.length-1?'بیدار شو':'ادامه روایت';if(shouldSpeak)chapterSpeech()}
-function openIntro(){chapterIndex=0;renderChapter(false);intro.classList.add('open');aria.classList.remove('show');chapterSpeech()}
+function openIntro(){ensureAudio();soundEffect('confirm');chapterIndex=0;renderChapter(false);intro.classList.add('open');aria.classList.remove('show');chapterSpeech()}
 document.querySelector('#begin').addEventListener('click',openIntro);
-document.querySelector('#transmission').addEventListener('click',()=>{aria.classList.add('show');const message='If you can hear me, you are not completely alone. Power reserves are at eleven percent. Please... please hurry.';document.querySelector('#aria-line').textContent=message;speak(message,'aria')});
-back.addEventListener('click',()=>{stopSpeech();if(chapterIndex>0){chapterIndex--;renderChapter()}else intro.classList.remove('open')});
-next.addEventListener('click',()=>{stopSpeech();if(chapterIndex<chapters.length-1){chapterIndex++;renderChapter()}else{intro.classList.remove('open');aria.classList.add('show');const message='Welcome to the station, Engineer. Power reserves are at eleven percent. Do not open the doors... not until I tell you to.';document.querySelector('#aria-line').textContent='به ایستگاه خوش آمدی، مهندس. ذخیره انرژی یازده درصد است. درها را باز نکن... تا وقتی که من به تو بگویم.';speak(message,'aria');document.querySelector('.tagline').innerHTML='“Welcome to the station, Engineer.”<br><strong>STATION STATUS: CRITICAL.</strong>';document.querySelector('#begin span:first-child').textContent='ادامه مخابره';document.querySelector('#begin').onclick=()=>{aria.classList.add('show');const followup='First instruction: restore emergency power. And whatever you find in the red archive, ignore it.';document.querySelector('#aria-line').textContent='اولین دستور: برق اضطراری را برگردان. و هر پیامی را که در آرشیو قرمز دیدی، نادیده بگیر.';speak(followup,'aria')}}});
-voiceToggle.addEventListener('click',()=>{if(!('speechSynthesis' in window))return;if(speechSynthesis.speaking&&!speechSynthesis.paused){speechSynthesis.pause();paused=true;voiceToggle.textContent='ادامه صدا';voiceStatus.textContent='AUDIO PAUSED'}else if(speechSynthesis.paused){speechSynthesis.resume();paused=false;voiceToggle.textContent='مکث صدا'}else if(activeSpeaker==='aria'&&ariaUtterance){speak(ariaUtterance.text,'aria')}else chapterSpeech()});
-voiceSkip.addEventListener('click',()=>{if('speechSynthesis' in window)speechSynthesis.cancel();narratorUtterance=null;ariaUtterance=null;paused=false;voiceSkipped=true;voiceToggle.textContent='پخش دوباره';voiceStatus.textContent='NARRATION SKIPPED'});
+document.querySelector('#transmission').addEventListener('click',()=>{ensureAudio();soundEffect('signal');aria.classList.add('show');const message='If you can hear me, you are not completely alone. Power reserves are at eleven percent. Please... please hurry.';document.querySelector('#aria-line').textContent=message;speak(message,'aria')});
+back.addEventListener('click',()=>{ensureAudio();soundEffect('click');stopSpeech();if(chapterIndex>0){chapterIndex--;renderChapter()}else intro.classList.remove('open')});
+next.addEventListener('click',()=>{ensureAudio();soundEffect('transition');stopSpeech();if(chapterIndex<chapters.length-1){chapterIndex++;renderChapter()}else{intro.classList.remove('open');aria.classList.add('show');const message='Welcome to the station, Engineer. Power reserves are at eleven percent. Do not open the doors... not until I tell you to.';document.querySelector('#aria-line').textContent='به ایستگاه خوش آمدی، مهندس. ذخیره انرژی یازده درصد است. درها را باز نکن... تا وقتی که من به تو بگویم.';speak(message,'aria');document.querySelector('.tagline').innerHTML='“Welcome to the station, Engineer.”<br><strong>STATION STATUS: CRITICAL.</strong>';document.querySelector('#begin span:first-child').textContent='ادامه مخابره';document.querySelector('#begin').onclick=()=>{aria.classList.add('show');const followup='First instruction: restore emergency power. And whatever you find in the red archive, ignore it.';document.querySelector('#aria-line').textContent='اولین دستور: برق اضطراری را برگردان. و هر پیامی را که در آرشیو قرمز دیدی، نادیده بگیر.';speak(followup,'aria')}}});
+voiceToggle.addEventListener('click',()=>{ensureAudio();if(!('speechSynthesis' in window)){voiceStatus.textContent='VOICE NOT SUPPORTED';return}if(speechSynthesis.speaking&&!speechSynthesis.paused){speechSynthesis.pause();paused=true;voiceToggle.textContent='ادامه صدا';voiceStatus.textContent='AUDIO PAUSED'}else if(speechSynthesis.paused){paused=false;speechSynthesis.resume();voiceToggle.textContent='مکث صدا'}else if(activeText){speak(activeText,activeSpeaker)}else chapterSpeech()});
+voiceSkip.addEventListener('click',()=>{if('speechSynthesis' in window)speechSynthesis.cancel();speechQueue=[];narratorUtterance=null;ariaUtterance=null;paused=false;voiceSkipped=true;voiceToggle.textContent='پخش دوباره';voiceStatus.textContent='NARRATION SKIPPED';soundEffect('click')});
 voiceVolume.addEventListener('input',()=>{voiceStatus.textContent=('speechSynthesis' in window&&speechSynthesis.speaking)?'VOLUME APPLIES NEXT LINE':'VOLUME SET'});
-document.querySelector('#aria-dismiss').addEventListener('click',()=>{aria.classList.remove('show');if(activeSpeaker==='aria')stopSpeech()});
+document.querySelector('#aria-dismiss').addEventListener('click',()=>{soundEffect('click');aria.classList.remove('show');if(activeSpeaker==='aria')stopSpeech()});
 addEventListener('keydown',e=>{if(e.key==='Escape'){stopSpeech();intro.classList.remove('open');aria.classList.remove('show')}if(e.key==='Enter'&&intro.classList.contains('open')&&e.target.tagName!=='BUTTON')next.click()});
 </script>
 </body>
