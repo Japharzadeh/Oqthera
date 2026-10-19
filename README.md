@@ -1,53 +1,63 @@
 # LAST STATION: EARTH
 
-**آخرین ایستگاه زمین** — a cinematic browser-game intro for Oqthera.
+A cinematic browser game with a FastAPI backend for save slots.
 
-A dark, atmospheric opening sequence set in 2089, after the collapse of civilization. The player awakens as the last energy engineer, hears from ARIA, and begins to question the story behind the world's silence.
+## Project layout
 
-## Current scope
-
-- Animated Three.js environment with a ruined skyline, broken transmission tower, drifting ash, fog, and atmospheric lighting
-- Cinematic title screen and responsive layout
-- Persian story intro presented in four chapters
-- Timed English cinematic narration, subtitles, playback controls, and a separate ARIA voice
-- FastAPI backend foundation with health checks and persistent save slots
-- The full gameplay loop is not implemented yet; the backend currently provides save persistence, not missions, combat, or multiplayer
-
-## Run the web intro
-
-Because the page uses JavaScript modules, serve it over HTTP instead of opening `index.html` directly.
-
-```bash
-python -m http.server 8080
+```text
+Oqthera/
+├── app.py
+├── requirements.txt
+├── .env.example
+├── templates/
+│   └── index.html
+├── static/
+│   └── audio/
+│       ├── chapter-01-opening.mp3
+│       ├── chapter-01-main.mp3
+│       ├── chapter-02.mp3
+│       ├── chapter-03-opening.mp3
+│       ├── chapter-03-main.mp3
+│       ├── chapter-04-opening.mp3
+│       └── chapter-04-main.mp3
+└── backend/
+    └── app/
+        ├── config.py
+        ├── database.py
+        ├── models.py
+        └── schemas.py
 ```
 
-Then open http://localhost:8080.
+## Run locally
 
-Three.js and fonts are loaded from external CDNs, so an internet connection is needed. Voice playback uses the browser's built-in Speech Synthesis API; voice availability and quality depend on the browser and operating system.
-
-## Run the backend
+Use Python 3.11 or newer.
 
 ```bash
-cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-- API health: http://127.0.0.1:8000/api/health
-- Interactive API docs: http://127.0.0.1:8000/docs
-- Backend details and endpoint examples: [`backend/README.md`](backend/README.md)
+Open http://127.0.0.1:8000. API documentation is available at http://127.0.0.1:8000/docs.
 
-SQLite is used by default. Database and CORS settings can be changed in `backend/.env`. The current backend is intended for local development; do not expose save endpoints publicly until authentication and authorization are implemented.
+On Windows, activate the environment with `.venv\\Scripts\\activate`.
 
-## GitHub Pages
+## API
 
-In the repository settings, open **Pages**, select **Deploy from a branch**, choose `main` and `/(root)`, then save. GitHub Pages serves the static intro only; it does not run the FastAPI backend. A deployed game needs a separately hosted backend and a matching `CORS_ORIGINS` setting.
+- `GET /api/health` — service health check
+- `GET /api/saves/{player_id}` — list a player's save slots
+- `GET /api/saves/{player_id}/{slot}` — load a save
+- `POST /api/saves/{player_id}/{slot}` — create or update a save
+- `DELETE /api/saves/{player_id}/{slot}` — delete a save
 
-## Project
+Save slots are numbered 1–3. SQLite is used by default; configure `DATABASE_URL` in `.env` to use another SQLAlchemy-supported database.
 
-- Repository: https://github.com/Japharzadeh/Oqthera
-- Title: LAST STATION: EARTH
-- Tagline: Civilization did not end. It went dark.
+## Audio and animation
+
+Narration files are served locally from `static/audio/`; the game no longer needs to query the GitHub API to discover its audio files. The intro starts after the player clicks or presses a key, satisfying browser audio-autoplay restrictions. Story headings animate word by word and narration text reveals with a cinematic character effect. Reduced-motion preferences are respected.
+
+## Security
+
+This is a development foundation. Authentication, authorization, rate limiting, migrations, and deployment secrets should be added before exposing save endpoints publicly. Until authentication exists, `player_id` is only an identifier and does not prove ownership of a save.
