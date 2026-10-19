@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
 const host=document.querySelector('#avatar-3d');
 if(host){
@@ -22,6 +23,43 @@ if(host){
   ring.rotation.x=Math.PI/2;ring.position.y=.01;scene.add(ring);
 
   const avatar=new THREE.Group();scene.add(avatar);
+  const importedAvatar=new THREE.Group();scene.add(importedAvatar);
+  const characterLoader=new GLTFLoader();
+  const importedCharacterCache=new Map();
+  let activeImportedGender=null;
+  let importRequest=0;
+  const externalCharacters={
+    male:'https://www.innerscene.com/api/library/daniel-3d-person-standing-casual-f788af5a/download',
+    female:'https://www.innerscene.com/api/library/jordan-3d-person-athlete-a0770454/download',
+    androgynous:'https://www.innerscene.com/api/library/daniel-3d-person-standing-casual-f788af5a/download'
+  };
+  async function showExternalCharacter(gender){
+    const key=gender==='female'?'female':'male';
+    if(activeImportedGender===key&&importedAvatar.children.length){avatar.visible=false;importedAvatar.visible=true;return;}
+    const request=++importRequest;
+    try{
+      let gltf=importedCharacterCache.get(key);
+      if(!gltf){
+        gltf=await new Promise((resolve,reject)=>characterLoader.load(externalCharacters[key],resolve,undefined,reject));
+        importedCharacterCache.set(key,gltf);
+      }
+      if(request!==importRequest)return;
+      importedAvatar.clear();
+      const model=gltf.scene.clone(true);
+      const bounds=new THREE.Box3().setFromObject(model);
+      const size=bounds.getSize(new THREE.Vector3());
+      const center=bounds.getCenter(new THREE.Vector3());
+      const targetHeight=4.65;
+      const scale=targetHeight/Math.max(size.y,0.001);
+      model.scale.setScalar(scale);
+      model.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+      model.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;if(node.material){node.material=Array.isArray(node.material)?node.material.map(m=>m.clone()):node.material.clone();}}});
+      importedAvatar.add(model);
+      importedAvatar.visible=true;avatar.visible=false;activeImportedGender=key;
+    }catch(error){
+      if(request===importRequest){avatar.visible=true;importedAvatar.visible=false;console.warn('Could not load the CC0 character asset; using the built-in preview.',error);}
+    }
+  }
   let characterParts=[];
   const mats={};
   const mat=(key,color,roughness=.78,metalness=.05)=>{const id=key+'|'+color;if(!mats[id])mats[id]=new THREE.MeshStandardMaterial({color,roughness,metalness});return mats[id]};
@@ -209,6 +247,7 @@ if(host){
     if(weather>.25){
       for(let i=0;i<5;i++)ellipsoid(avatar,[((i%2)*2-1)*(.23+i*.025),2.35+i*.13,.35],[.025+weather*.025,.035,.009],mat('dust'+i,0x887a66,.98));
     }
+    showExternalCharacter(gender);
   }
   let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
   const view=(name)=>{if(name==='front'){targetYaw=0;targetPitch=0;targetZoom=9.3}else if(name==='back'){targetYaw=Math.PI;targetPitch=0;targetZoom=9.3}else if(name==='face'){targetYaw=0;targetPitch=.03;targetZoom=6.1}else{targetYaw=0;targetPitch=0;targetZoom=9.3}};
@@ -221,6 +260,6 @@ if(host){
   new ResizeObserver(resize).observe(host);resize();
   window.update3DCharacter=(data)=>buildCharacter(data);
   try{const saved=JSON.parse(localStorage.getItem('oqthera.character')||'null');if(saved)buildCharacter(saved);else buildCharacter({})}catch{buildCharacter({})}
-  function animate(){requestAnimationFrame(animate);currentYaw+=(targetYaw-currentYaw)*.12;currentPitch+=(targetPitch-currentPitch)*.12;currentZoom+=(targetZoom-currentZoom)*.12;avatar.rotation.y=currentYaw;avatar.rotation.x=currentPitch;camera.position.z=currentZoom;camera.lookAt(0,2.55,0);renderer.render(scene,camera)}
+  function animate(){requestAnimationFrame(animate);currentYaw+=(targetYaw-currentYaw)*.12;currentPitch+=(targetPitch-currentPitch)*.12;currentZoom+=(targetZoom-currentZoom)*.12;avatar.rotation.y=currentYaw;avatar.rotation.x=currentPitch;importedAvatar.rotation.y=currentYaw;importedAvatar.rotation.x=currentPitch;camera.position.z=currentZoom;camera.lookAt(0,2.55,0);renderer.render(scene,camera)}
   animate();
 }
