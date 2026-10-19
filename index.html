@@ -126,7 +126,10 @@ function rawAudioUrl(path){return 'https://raw.githubusercontent.com/Japharzadeh
 function naturalPathSort(a,b){return a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})}
 async function discoverAudioAssets(){
   try{
-    const response=await fetch(AUDIO_REPO_API+'/git/trees/'+encodeURIComponent(AUDIO_BRANCH)+'?recursive=1',{headers:{Accept:'application/vnd.github+json'}});
+    const refResponse=await fetch(AUDIO_REPO_API+'/git/ref/heads/'+AUDIO_BRANCH,{headers:{Accept:'application/vnd.github+json'}});
+    if(!refResponse.ok)throw new Error('Audio branch lookup failed: '+refResponse.status);
+    const refData=await refResponse.json();
+    const response=await fetch(AUDIO_REPO_API+'/git/trees/'+refData.object.sha+'?recursive=1',{headers:{Accept:'application/vnd.github+json'}});
     if(!response.ok)throw new Error('Audio asset index unavailable: '+response.status);
     const tree=await response.json();
     const paths=(tree.tree||[]).filter(item=>item.type==='blob'&&isAudioPath(item.path)).map(item=>item.path).sort(naturalPathSort);
@@ -355,6 +358,7 @@ function narrateChapter(){
   const clearTimers=()=>timers.forEach(clearTimeout);
   const complete=()=>{
     if(completed||token!==narrationToken)return;
+    if(!paragraphsRendered)revealParagraphs();
     completed=true;clearTimers();
     paragraphs.forEach((item,i)=>{
       const p=storyText.children[i];
