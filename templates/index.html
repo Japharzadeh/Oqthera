@@ -225,7 +225,7 @@ let gameActive=false,playerX=0,playerZ=4,playerYaw=0,playerPitch=0,health=100,en
 const pressedKeys=new Set();
 const gameHud=document.querySelector('#game-hud');
 const gameHint=document.querySelector('#game-hint');
-let firstPersonHands=null,thirdPerson=false,playerRig=null,playerArms=[],playerLegs=[],playerKnees=[],playerHead=null;
+let firstPersonHands=null,thirdPerson=false,playerRig=null,playerArms=[],playerLegs=[],playerKnees=[],playerFeet=[],playerHead=null;
 let jumpVelocity=0,playerY=0,isGrounded=true,isCrouching=false,crouchBlend=0,jumpBlend=0,walkPhase=0,gameStartedAt=0,gameClockHours=6,playerBodyYaw=Math.PI;
 const PLAYER_RADIUS=.38,PLAYER_HEIGHT=1.78;
 function updateHud(){
@@ -277,6 +277,7 @@ function buildPlayerRig(){
   playerArms=['oqArmLeft','oqArmRight'].map(name=>playerRig.getObjectByName(name)).filter(Boolean);
   playerLegs=['oqLegLeft','oqLegRight'].map(name=>playerRig.getObjectByName(name)).filter(Boolean);
   playerKnees=['oqKneeLeft','oqKneeRight'].map(name=>playerRig.getObjectByName(name)).filter(Boolean);
+  playerFeet=['oqFootLeft','oqFootRight'].map(name=>playerRig.getObjectByName(name)).filter(Boolean);
   scene.add(playerRig);
 }function canOccupy(x,z){
   for(const r of collisionRects){
@@ -394,7 +395,7 @@ function animate(){
         const legStride=Math.sin(legPhase);
         const legLift=Math.max(0,Math.cos(legPhase));
         const walkHip=legStride*(sprinting?.66:.43);
-        const crouchHip=i===0?.16:.48;
+        const crouchHip=.32;
         const jumpHip=-.2;
         leg.rotation.x=walkHip*gait*(1-crouchBlend)*(1-jumpBlend)
           +crouchHip*crouchBlend
@@ -407,10 +408,17 @@ function animate(){
         const legPhase=phase+(i===0?0:Math.PI);
         const legLift=Math.max(0,Math.cos(legPhase));
         const walkKnee=(.08+legLift*.48)*(gait*(1-crouchBlend)*(1-jumpBlend));
-        const crouchKnee=i===0?.12:.96;
+        const crouchKnee=i===0?.62:.98;
         const tuckKnee=.82;
         knee.rotation.x=walkKnee+crouchKnee*crouchBlend+tuckKnee*jumpTuck;
         knee.rotation.z=gait*(1-crouchBlend)*Math.max(0,Math.sin(legPhase))*.035*side;
+      });
+      playerFeet.forEach((foot,i)=>{
+        const crouchHip=.32;
+        const crouchKnee=i===0?.62:.98;
+        const toePlant=i===0?0:.48;
+        foot.rotation.x=crouchBlend*(toePlant-crouchHip-crouchKnee);
+        foot.rotation.z=0;
       });
       playerArms.forEach((arm,i)=>{
         const side=i===0?-1:1;
