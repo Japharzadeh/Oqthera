@@ -274,7 +274,9 @@ function buildPlayerRig(){
   playerRig.name='OqtheraGameplayPlayer';
   playerRig.scale.setScalar(.36);
   playerRig.visible=false;
-  playerArms=[];playerLegs=[];
+  const limbs=playerRig.userData.oqtheraLimbGroups||{arms:[],legs:[]};
+  playerArms=limbs.arms||[];
+  playerLegs=limbs.legs||[];
   scene.add(playerRig);
 }function canOccupy(x,z){
   for(const r of collisionRects){
@@ -367,9 +369,15 @@ function animate(){
     if(firstPersonHands){firstPersonHands.position.set(sway*.35,bob+(isCrouching?-.28:0),0);firstPersonHands.rotation.z=moving?Math.sin(walkPhase)*.035:0;firstPersonHands.rotation.x=moving?Math.cos(walkPhase*2)*.035:0}
     if(playerRig){
       playerRig.position.set(playerX,playerY+(moving&&isGrounded?Math.abs(Math.sin(walkPhase*2))*.025:0),playerZ);playerRig.rotation.y=Math.PI+playerYaw;playerRig.rotation.x=moving&&isGrounded?Math.sin(walkPhase)*.025:0;playerRig.scale.set(.36,isCrouching?.26:.36,.36);
-      const swing=moving?Math.sin(walkPhase)*(sprinting?.85:.55):0;
-      playerLegs.forEach((leg,i)=>{leg.rotation.x=(i===0?1:-1)*swing});
-      playerArms.forEach((arm,i)=>{arm.rotation.x=(i===0?-1:1)*swing*.8+(moving?Math.sin(walkPhase*2+i)*.04:0)});
+      const swing=moving&&isGrounded?Math.sin(walkPhase)*(sprinting?.95:isCrouching?.24:.72):0;
+      playerLegs.forEach((leg,i)=>{
+        leg.rotation.x=(i===0?1:-1)*swing;
+        leg.rotation.z=moving&&isGrounded?Math.sin(walkPhase*2+i)*.025:0;
+      });
+      playerArms.forEach((arm,i)=>{
+        arm.rotation.x=(i===0?-1:1)*swing*.82+(moving&&isGrounded?Math.sin(walkPhase*2+i)*.035:0);
+        arm.rotation.z=moving&&isGrounded?(i===0?-1:1)*Math.abs(Math.sin(walkPhase))*.025:0;
+      });
     }
     if(thirdPerson){
       const distance=isCrouching?3.2:4.1;
