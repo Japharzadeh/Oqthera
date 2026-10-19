@@ -1,0 +1,226 @@
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const host=document.querySelector('#avatar-3d');
+if(host){
+  const scene=new THREE.Scene();
+  scene.background=null;
+  const camera=new THREE.PerspectiveCamera(34,1,.1,100);
+  camera.position.set(0,2.85,9.3);
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.12;
+  host.appendChild(renderer.domElement);
+  scene.add(new THREE.HemisphereLight(0xb7c9c6,0x171b1a,2.1));
+  const key=new THREE.DirectionalLight(0xffe1c5,3.0);key.position.set(-4,7,6);scene.add(key);
+  const rim=new THREE.DirectionalLight(0x6eb9b0,2.2);rim.position.set(4,5,-5);scene.add(rim);
+  const fill=new THREE.PointLight(0xc16f4c,28,15,2);fill.position.set(2,2.8,4);scene.add(fill);
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(2.3,64),new THREE.MeshBasicMaterial({color:0x9a6448,transparent:true,opacity:.13}));
+  ground.rotation.x=-Math.PI/2;ground.position.y=-.035;scene.add(ground);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,.008,6,100),new THREE.MeshBasicMaterial({color:0xb66d4c,transparent:true,opacity:.52}));
+  ring.rotation.x=Math.PI/2;ring.position.y=.01;scene.add(ring);
+
+  const avatar=new THREE.Group();scene.add(avatar);
+  let characterParts=[];
+  const mats={};
+  const mat=(key,color,roughness=.78,metalness=.05)=>{const id=key+'|'+color;if(!mats[id])mats[id]=new THREE.MeshStandardMaterial({color,roughness,metalness});return mats[id]};
+  const skinMat=(color)=>new THREE.MeshStandardMaterial({color:new THREE.Color(color||'#e1b795'),roughness:.72});
+  function addMesh(geometry,material,parent=avatar,pos=[0,0,0],scale=null){
+    const mesh=new THREE.Mesh(geometry,material);mesh.position.set(...pos);if(scale)mesh.scale.set(...scale);parent.add(mesh);characterParts.push(mesh);return mesh;
+  }
+  function ellipsoid(parent,position,scale,material,segments=24){return addMesh(new THREE.SphereGeometry(1,segments,16),material,parent,position,scale)}
+  function capsule(parent,a,b,radius,material,radius2=radius){
+    const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),dir=new THREE.Vector3().subVectors(vb,va);
+    const mesh=addMesh(new THREE.CylinderGeometry(radius2,radius,dir.length(),12,1),material,parent,va.clone().add(vb).multiplyScalar(.5).toArray());
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
+    ellipsoid(parent,a,[radius,radius,radius],material,12);ellipsoid(parent,b,[radius2,radius2,radius2],material,12);return mesh;
+  }
+  function curve(parent,points,radius,material){
+    const path=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+    return addMesh(new THREE.TubeGeometry(path,20,radius,7,false),material,parent);
+  }
+  function clearAvatar(){for(const child of [...avatar.children]){avatar.remove(child);if(child.geometry)child.geometry.dispose()}characterParts=[]}
+  function colorValue(value,fallback){return /^#[0-9a-f]{6}$/i.test(value||'')?value:fallback}
+  function buildCharacter(d={}){
+    clearAvatar();
+    const skin=colorValue(d['skin-tone'],'#e1b795'),hair=colorValue(d['hair-color'],'#554238'),outfit=colorValue(d['outfit-type'],'#4d5d58'),accent=colorValue(d['accent-color'],'#b66d4c'),eyes=colorValue(d['eye-color'],'#6c8878');
+    const gender=d.gender||'male',build=d['character-build']||d.build||'Average';
+    const skinM=skinMat(skin),hairM=mat('hair',hair,.88),cloth=mat('cloth',outfit,.92),trim=mat('trim',accent,.6,.2);
+    const dark=mat('dark',0x1a2221,.86),black=mat('black',0x101515,.62),metal=mat('metal',0x68736d,.42,.65),eyeWhite=mat('eye-white',0xe5e2d8,.28),iris=mat('iris',eyes,.3),pupil=mat('pupil',0x101414,.18),lip=mat('lip',0x89584e,.8),scarMat=mat('scar',0xe4b49a,.9);
+    const female=gender==='female',androgynous=gender==='androgynous';
+    const broad=build==='Broad'?1.17:build==='Lean'?.86:build==='Athletic'?1.06:1;
+    const torsoW=(female?.72:.82)*(androgynous?.96:1)*broad;
+    const torso=ellipsoid(avatar,[0,2.65,0],[torsoW,.9,.39],cloth,32);
+    torso.rotation.z=.015;
+    // Collar, layered survival suit and hard-shell panels.
+    ellipsoid(avatar,[0,3.26,.015],[.39,.28,.32],dark);
+    capsule(avatar,[-.28,3.28,.17],[0,2.8,.36],.035,trim);
+    capsule(avatar,[.28,3.28,.17],[0,2.8,.36],.035,trim);
+    ellipsoid(avatar,[0,2.7,.36],[.25,.43,.055],dark);
+    ellipsoid(avatar,[0,2.75,.42],[.15,.27,.025],trim);
+    for(const x of [-1,1]){
+      ellipsoid(avatar,[x*.43,3.13,0],[.27,.31,.34],metal);
+      capsule(avatar,[x*.48,3.05,0],[x*.57,2.35,.01],.18,cloth,.145);
+      ellipsoid(avatar,[x*.57,2.33,.01],[.16,.21,.16],dark);
+      capsule(avatar,[x*.57,2.28,.01],[x*.61,1.77,.06],.115,metal,.105);
+      ellipsoid(avatar,[x*.61,1.7,.08],[.12,.15,.12],skinM);
+      for(let f=0;f<4;f++)capsule(avatar,[x*.61+(f-1.5)*.045,1.69,.12],[x*.61+(f-1.5)*.05,1.58,.14],.022,skinM,.017);
+      // Shoulder armour and forearm bracer.
+      ellipsoid(avatar,[x*.49,3.14,.015],[.25,.19,.3],cloth);
+      ellipsoid(avatar,[x*.49,3.14,.27],[.19,.11,.045],trim);
+      ellipsoid(avatar,[x*.60,2.03,.055],[.14,.24,.15],dark);
+      capsule(avatar,[x*.60,2.13,.18],[x*.60,1.94,.18],.025,trim,.025);
+    }
+    // Belt, utility modules and trousers.
+    ellipsoid(avatar,[0,1.95,0],[.53,.22,.34],dark);
+    ellipsoid(avatar,[0,1.96,.31],[.12,.1,.035],trim);
+    for(const x of [-.34,.34]){ellipsoid(avatar,[x,1.94,.25],[.12,.15,.11],metal);ellipsoid(avatar,[x,1.94,.33],[.07,.08,.025],black)}
+    for(const x of [-.23,.23]){
+      capsule(avatar,[x*.82,1.88,0],[x,1.02,0],.19,cloth,.145);
+      ellipsoid(avatar,[x,1.12,.015],[.15,.24,.17],dark);
+      capsule(avatar,[x,1.02,0],[x*1.04,.38,.015],.115,cloth,.105);
+      ellipsoid(avatar,[x*1.04,.29,.13],[.16,.17,.31],black);
+      ellipsoid(avatar,[x*1.04,.2,.24],[.16,.055,.15],trim);
+      capsule(avatar,[x*1.04,.43,.13],[x*1.04,.31,.13],.02,metal);
+      ellipsoid(avatar,[x*1.04,.48,.11],[.12,.12,.12],dark);
+    }
+    // Backpack and shoulder harness.
+    ellipsoid(avatar,[0,2.75,-.39],[.43,.62,.23],dark);
+    ellipsoid(avatar,[0,3.1,-.43],[.34,.24,.2],metal);
+    ellipsoid(avatar,[0,2.62,-.59],[.27,.25,.04],trim);
+    capsule(avatar,[-.32,3.27,.23],[.0,2.3,.36],.035,metal);
+    capsule(avatar,[.32,3.27,.23],[.0,2.3,.36],.035,metal);
+    // Neck and head proportions react to face shape, age and presentation.
+    capsule(avatar,[0,3.35,0],[0,3.78,0],.19,skinM);
+    const faceShape=d['face-shape-choice']||'angular';
+    const faceWidth=faceShape==='round'?.52:faceShape==='long'?.46:.48;
+    const faceHeight=faceShape==='long'?.68:faceShape==='round'?.56:.61;
+    const headY=4.27;
+    const head=ellipsoid(avatar,[0,headY,0],[faceWidth,faceHeight,.43],skinM,32);
+    if(faceShape==='angular')head.scale.set(faceWidth*.94,faceHeight,.43);
+    ellipsoid(avatar,[-.475,4.25,0],[.105,.17,.13],skinM);
+    ellipsoid(avatar,[.475,4.25,0],[.105,.17,.13],skinM);
+    // Hair cap and style-specific silhouette.
+    const hairStyle=d['hair-style']||'messy';
+    if(hairStyle!=='shaved'){
+      const capY=hairStyle==='mohawk'?4.88:4.72;
+      ellipsoid(avatar,[0,capY,-.015],[hairStyle==='long'?.49:.49,hairStyle==='mohawk'?.28:.24,.44],hairM,28);
+      if(hairStyle==='long'){
+        ellipsoid(avatar,[-.43,4.31,-.015],[.12,.49,.18],hairM);
+        ellipsoid(avatar,[.43,4.31,-.015],[.12,.49,.18],hairM);
+      }else if(hairStyle==='mohawk'){
+        ellipsoid(avatar,[0,4.91,.08],[.14,.31,.27],hairM);
+      }else if(hairStyle==='curly'){
+        for(let i=0;i<11;i++){const a=i/11*Math.PI*2;ellipsoid(avatar,[Math.cos(a)*.36,4.77+Math.sin(a)*.08,.05],[.12,.13,.12],hairM,12)}
+      }else if(hairStyle==='messy'){
+        for(const p of [[-.3,4.84,.12],[-.12,4.92,.15],[.12,4.89,.15],[.3,4.82,.12]])ellipsoid(avatar,p,[.14,.13,.14],hairM,12);
+      }else{
+        ellipsoid(avatar,[0,4.83,.12],[.39,.12,.24],hairM);
+      }
+    }else ellipsoid(avatar,[0,4.73,0],[.45,.12,.41],hairM);
+    // Eyes, lids, brows and facial structure are actual 3D geometry.
+    for(const side of [-1,1]){
+      ellipsoid(avatar,[side*.19,4.36,.377],[.12,.073,.055],skinM,20);
+      ellipsoid(avatar,[side*.19,4.36,.421],[.088,.052,.036],eyeWhite,20);
+      ellipsoid(avatar,[side*.19,4.36,.45],[.042,.043,.022],iris,16);
+      ellipsoid(avatar,[side*.19,4.36,.469],[.021,.027,.012],pupil,12);
+      ellipsoid(avatar,[side*.19,4.39,.46],[.012,.012,.008],mat('eye-glint',0xffffff,.2),8);
+      const browStyle=d['brow-style']||'natural';
+      curve(avatar,[[side*.09,4.48,.39],[side*.19,4.51+(browStyle==='strong'?.025:0),.4],[side*.29,4.48,.38]],browStyle==='soft'?.018:browStyle==='strong'?.035:.026,hairM);
+    }
+    // Nose bridge, tip and nostrils; nose selection changes the real mesh.
+    const noseType=d['nose-type']||'straight';
+    const noseWidth=noseType==='broad'?.115:noseType==='refined'?.065:noseType==='button'?.075:.085;
+    const noseLength=noseType==='button'?.18:noseType==='aquiline'?.27:.23;
+    capsule(avatar,[0,4.34,.39],[noseType==='aquiline'?.035:0,4.34-noseLength,.51],noseWidth,skinM,noseWidth*.72);
+    ellipsoid(avatar,[noseType==='aquiline'?.035:0,4.34-noseLength,.515],[noseWidth*1.25,.065,.065],skinM);
+    for(const side of [-1,1])ellipsoid(avatar,[side*noseWidth*.7,4.34-noseLength+.005,.55],[.025,.014,.015],mat('nostril',0x795642));
+    // Mouth and lips with selectable volume/width.
+    const lipType=d['lips-type']||'natural',lipW=lipType==='wide'?.17:lipType==='thin'?.105:.135,lipH=lipType==='full'?.07:lipType==='thin'?.022:.042;
+    ellipsoid(avatar,[0,4.0,.405],[lipW,lipH,.035],lip);
+    curve(avatar,[[-lipW*.8,4.01,.437],[0,4.015+lipH*.15,.442],[lipW*.8,4.01,.437]],.008,mat('lip-line',0x4a302b));
+    // Facial hair.
+    const facial=d['facial-hair']||'stubble';
+    if(facial!=='none'){
+      const beardMat=mat('beard',hair,.95);
+      if(facial==='beard'||facial==='stubble'){
+        ellipsoid(avatar,[0,3.91,.25],[.39,.19,.25],beardMat);
+        ellipsoid(avatar,[0,4.02,.37],[.31,.105,.12],beardMat);
+      }else if(facial==='goatee')ellipsoid(avatar,[0,3.91,.4],[.13,.15,.06],beardMat);
+      if(facial==='mustache'||facial==='beard'||facial==='stubble'){
+        for(const side of [-1,1])ellipsoid(avatar,[side*.09,4.06,.414],[.11,.045,.04],beardMat);
+      }
+    }
+    // Face detail choices.
+    if(d['skin-detail']==='freckles'){
+      const freckle=mat('freckle',0x855e48,.9);
+      for(let i=0;i<14;i++){const x=((i%7)-3)*.047;const y=4.18+Math.floor(i/7)*.035;ellipsoid(avatar,[x,y,.424],[.009,.009,.006],freckle,8)}
+    }
+    if(d['skin-detail']==='weathered'||Number(d['scar-intensity'])>65){
+      curve(avatar,[[-.27,4.18,.42],[-.22,4.16,.43],[-.18,4.17,.43]],.008,mat('weather',0x9d7059));
+      curve(avatar,[[.24,4.2,.42],[.29,4.18,.42],[.31,4.16,.41]],.008,mat('weather2',0x9d7059));
+    }
+    if(d['scar-type']!=='none'||d['skin-detail']==='scar'){
+      const scarPos=d['scar-type']==='brow'?4.48:4.16;
+      curve(avatar,[[-.25,scarPos,.45],[-.18,scarPos-.06,.46],[-.12,scarPos-.1,.45]],.012,scarMat);
+    }
+    // Eyewear: glasses or a translucent technical visor.
+    const eyewear=d['glasses-type']||'none';
+    if(eyewear!=='none'){
+      const frame=mat('frames',eyewear==='visor'?0x6db9ad:0x202827,.35,.55);
+      if(eyewear==='visor'){
+        const visor=addMesh(new THREE.BoxGeometry(.77,.22,.045),new THREE.MeshPhysicalMaterial({color:0x6db9ad,roughness:.22,metalness:.35,transparent:true,opacity:.36,clearcoat:.8}),avatar,[0,4.36,.45]);
+        visor.rotation.x=-.04;
+      }else{
+        for(const side of [-1,1]){
+          const lens=addMesh(new THREE.TorusGeometry(.09,.012,8,24),frame,avatar,[side*.19,4.36,.465]);lens.scale.set(1.15,.8,1);
+        }
+        capsule(avatar,[-.09,4.36,.465],[.09,4.36,.465],.012,frame);
+      }
+    }
+    // Tattoos and accessory loadout.
+    if(d['tattoo-type']!=='none'){
+      const tattoo=mat('tattoo',0x263b3a,.95);
+      if(d['tattoo-type']==='neck')curve(avatar,[[-.12,3.55,.15],[-.04,3.5,.19],[.04,3.55,.19],[.12,3.5,.15]],.018,tattoo);
+      else if(d['tattoo-type']==='wrist')curve(avatar,[[.61,1.83,.12],[.7,1.8,.12],[.7,1.76,.12]],.018,tattoo);
+      else curve(avatar,[[.55,2.88,.17],[.65,2.82,.18],[.55,2.75,.18],[.65,2.68,.18]],.018,tattoo);
+    }
+    if(d['accessory-type']==='earring'){
+      for(const side of [-1,1])ellipsoid(avatar,[side*.49,4.14,.04],[.025,.04,.025],trim,12);
+    }else if(d['accessory-type']==='headset'){
+      for(const side of [-1,1])ellipsoid(avatar,[side*.49,4.28,.015],[.09,.14,.1],dark);
+      capsule(avatar,[-.48,4.38,-.02],[.0,4.64,-.02],.025,metal);
+      capsule(avatar,[-.48,4.19,.02],[-.25,4.04,.23],.018,trim);
+    }else if(d['accessory-type']==='respirator'){
+      ellipsoid(avatar,[0,4.08,.48],[.24,.18,.12],dark);
+      ellipsoid(avatar,[0,4.08,.585],[.11,.09,.025],metal);
+      ellipsoid(avatar,[0,4.08,.61],[.055,.05,.012],trim);
+      for(const side of [-1,1])ellipsoid(avatar,[side*.2,4.08,.48],[.07,.1,.055],metal);
+    }
+    // Age impression via subtle forehead lines.
+    if(['36–45','46–55','56+'].includes(d['character-age']||d.age)){
+      const ageMat=mat('age-lines',0x9b725d,.9);
+      curve(avatar,[[-.16,4.58,.37],[0,4.59,.39],[.16,4.58,.37]],.006,ageMat);
+      if((d['character-age']||d.age)==='56+')curve(avatar,[[-.23,4.27,.43],[-.18,4.25,.44],[-.13,4.27,.43]],.006,ageMat);
+    }
+    // Weathering affects the clothing finish without hiding the character.
+    const weather=Number(d['scar-intensity']||0)/100;
+    if(weather>.25){
+      for(let i=0;i<5;i++)ellipsoid(avatar,[((i%2)*2-1)*(.23+i*.025),2.35+i*.13,.35],[.025+weather*.025,.035,.009],mat('dust'+i,0x887a66,.98));
+    }
+  }
+  let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
+  const view=(name)=>{if(name==='front'){targetYaw=0;targetPitch=0;targetZoom=9.3}else if(name==='back'){targetYaw=Math.PI;targetPitch=0;targetZoom=9.3}else if(name==='face'){targetYaw=0;targetPitch=.03;targetZoom=6.1}else{targetYaw=0;targetPitch=0;targetZoom=9.3}};
+  host.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;host.setPointerCapture?.(e.pointerId)});
+  host.addEventListener('pointermove',e=>{if(!dragging)return;targetYaw+=(e.clientX-lastX)*.009;targetPitch=Math.max(-.45,Math.min(.45,targetPitch+(e.clientY-lastY)*.005));lastX=e.clientX;lastY=e.clientY});
+  host.addEventListener('pointerup',()=>dragging=false);host.addEventListener('pointercancel',()=>dragging=false);
+  host.addEventListener('wheel',e=>{e.preventDefault();targetZoom=Math.max(5.1,Math.min(12.5,targetZoom+e.deltaY*.008))},{passive:false});
+  document.querySelectorAll('[data-avatar-view]').forEach(button=>button.addEventListener('click',()=>view(button.dataset.avatarView)));
+  function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+  new ResizeObserver(resize).observe(host);resize();
+  window.update3DCharacter=(data)=>buildCharacter(data);
+  try{const saved=JSON.parse(localStorage.getItem('oqthera.character')||'null');if(saved)buildCharacter(saved);else buildCharacter({})}catch{buildCharacter({})}
+  function animate(){requestAnimationFrame(animate);currentYaw+=(targetYaw-currentYaw)*.12;currentPitch+=(targetPitch-currentPitch)*.12;currentZoom+=(targetZoom-currentZoom)*.12;avatar.rotation.y=currentYaw;avatar.rotation.x=currentPitch;camera.position.z=currentZoom;camera.lookAt(0,2.55,0);renderer.render(scene,camera)}
+  animate();
+}
