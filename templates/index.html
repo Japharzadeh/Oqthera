@@ -274,9 +274,8 @@ function buildPlayerRig(){
   playerRig.name='OqtheraGameplayPlayer';
   playerRig.scale.setScalar(.36);
   playerRig.visible=false;
-  const limbs=playerRig.userData.oqtheraLimbGroups||{arms:[],legs:[]};
-  playerArms=limbs.arms||[];
-  playerLegs=limbs.legs||[];
+  playerArms=['oqArmLeft','oqArmRight'].map(name=>playerRig.getObjectByName(name)).filter(Boolean);
+  playerLegs=['oqLegLeft','oqLegRight'].map(name=>playerRig.getObjectByName(name)).filter(Boolean);
   scene.add(playerRig);
 }function canOccupy(x,z){
   for(const r of collisionRects){
