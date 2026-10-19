@@ -321,7 +321,7 @@ if(host){
       for(const child of [...avatar.children]){
         if(child===arm||child===leg||!child.isMesh)continue;
         const x=child.position.x,y=child.position.y;
-        const armMesh=Math.sign(x||side)===side&&Math.abs(x)>=.55&&y>=1.55&&y<=2.96;
+        const armMesh=Math.sign(x||side)===side&&Math.abs(x)>=.55&&y>=1.55&&y<=3.16;
         const legMesh=Math.sign(x||side)===side&&Math.abs(x)<=.29&&y>.1&&y<=1.95;
         if(armMesh){
           avatar.remove(child);
