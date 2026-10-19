@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path as FilePath
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,6 +14,8 @@ from app.models import GameSave
 from app.schemas import HealthResponse, SavePayload, SaveResponse, SaveSummary
 
 settings = get_settings()
+PROJECT_ROOT = FilePath(__file__).resolve().parents[2]
+FRONTEND_FILE = PROJECT_ROOT / "index.html"
 
 
 @asynccontextmanager
@@ -22,7 +26,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    description="Persistence API for LAST STATION: EARTH. Authentication is not enabled in this prototype.",
+    description="Web frontend and persistence API for LAST STATION: EARTH. Authentication is not enabled in this prototype.",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -37,6 +41,16 @@ app.add_middleware(
 DbSession = Annotated[Session, Depends(get_db)]
 PlayerId = Annotated[str, Path(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
 SaveSlot = Annotated[int, Path(ge=1, le=3)]
+
+
+@app.get("/", include_in_schema=False)
+def frontend() -> FileResponse:
+    if not FRONTEND_FILE.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Frontend file index.html was not found in the project root",
+        )
+    return FileResponse(FRONTEND_FILE, media_type="text/html")
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["system"])
