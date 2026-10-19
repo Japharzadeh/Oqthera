@@ -479,7 +479,7 @@ setTimeout(()=>{
     window.removeEventListener('keydown',activate);
     hint.remove();
     ensureAudio();
-    audioAssetsReady.then(startExperience);
+    startExperience();
   };
   window.addEventListener('pointerdown',activate,{once:true});
   window.addEventListener('keydown',activate,{once:true});
