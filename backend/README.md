@@ -1,9 +1,10 @@
 # LAST STATION: EARTH — Backend
 
-FastAPI + SQLAlchemy persistence foundation for the browser game.
+FastAPI serves the browser game frontend and provides the persistence API.
 
 ## Included
 
+- `GET /` serves the root `index.html` frontend
 - `GET /api/health` service health check
 - `GET /api/saves/{player_id}` list save slots
 - `GET /api/saves/{player_id}/{slot}` load a save
@@ -15,17 +16,33 @@ FastAPI + SQLAlchemy persistence foundation for the browser game.
 
 ## Run locally
 
+Run these commands from the repository root:
+
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+Create `.env` from `.env.example` only if you do not already have a configured `.env` file:
+
+```bash
 cp .env.example .env
+```
+
+Start the server from the `backend` directory:
+
+```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-API docs: http://127.0.0.1:8000/docs
-Health check: http://127.0.0.1:8000/api/health
+Then open the game frontend at http://127.0.0.1:8000/
+
+- API docs: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/api/health
+
+The frontend is served from the repository-root `index.html`. Keep that file in place relative to the `backend` directory. GitHub Pages cannot run this Python backend; the backend must be hosted on a Python-capable service to serve the frontend this way online.
 
 ## Example
 
