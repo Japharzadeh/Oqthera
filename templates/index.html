@@ -265,34 +265,18 @@ function buildFirstPersonHands(){
   }
 }
 function buildPlayerRig(){
-  if(playerRig)scene.remove(playerRig);
-  let skin='#e1b795',suit='#4d5d58',accent='#b66d4c';
-  try{const saved=JSON.parse(localStorage.getItem('oqthera.character')||'{}');skin=saved['skin-tone']||skin;suit=saved['outfit-type']||suit;accent=saved['accent-color']||accent}catch{}
-  playerRig=new THREE.Group();playerRig.visible=false;
-  const skinMat=new THREE.MeshStandardMaterial({color:skin,roughness:.8});
-  const suitMat=new THREE.MeshStandardMaterial({color:suit,roughness:.9});
-  const darkMat=new THREE.MeshStandardMaterial({color:0x242b29,roughness:.95});
-  const accentMat=new THREE.MeshStandardMaterial({color:accent,roughness:.85});
-  const makeMesh=(geo,mat,parent=playerRig)=>{const m=new THREE.Mesh(geo,mat);parent.add(m);return m};
-  const torso=makeMesh(new THREE.CapsuleGeometry(.27,.52,5,10),suitMat);torso.position.y=1.05;
-  const chest=makeMesh(new THREE.BoxGeometry(.43,.24,.12),accentMat);chest.position.set(0,1.15,.235);
-  const head=makeMesh(new THREE.SphereGeometry(.16,18,14),skinMat);head.position.y=1.59;playerHead=head;
-  const hairMat=new THREE.MeshStandardMaterial({color:0x554238,roughness:1});
-  const hair=makeMesh(new THREE.SphereGeometry(.165,16,10,0,Math.PI*2,0,Math.PI*.56),hairMat);hair.position.y=1.66;
-  playerArms=[];playerLegs=[];
-  for(const side of [-1,1]){
-    const arm=new THREE.Group();arm.position.set(side*.34,1.28,0);playerRig.add(arm);
-    const upper=makeMesh(new THREE.CapsuleGeometry(.075,.27,4,8),suitMat,arm);upper.position.y=-.18;upper.rotation.z=side*-.12;
-    const hand=makeMesh(new THREE.SphereGeometry(.065,10,8),skinMat,arm);hand.position.set(side*.015,-.39,.015);
-    playerArms.push(arm);
-    const leg=new THREE.Group();leg.position.set(side*.14,.72,0);playerRig.add(leg);
-    const thigh=makeMesh(new THREE.CapsuleGeometry(.09,.28,4,8),suitMat,leg);thigh.position.y=-.19;
-    const boot=makeMesh(new THREE.BoxGeometry(.17,.11,.28),darkMat,leg);boot.position.set(0,-.39,.07);
-    playerLegs.push(leg);
+  if(playerRig){scene.remove(playerRig);playerRig.traverse(node=>{if(node.geometry)node.geometry.dispose()})}
+  const saved=JSON.parse(localStorage.getItem('oqthera.character')||'{}');
+  if(typeof window.createOqtheraGameplayCharacter!=='function'){
+    throw new Error('The selected character model is not ready yet.');
   }
+  playerRig=window.createOqtheraGameplayCharacter(saved);
+  playerRig.name='OqtheraGameplayPlayer';
+  playerRig.scale.setScalar(.36);
+  playerRig.visible=false;
+  playerArms=[];playerLegs=[];
   scene.add(playerRig);
-}
-function canOccupy(x,z){
+}function canOccupy(x,z){
   for(const r of collisionRects){
     const closestX=Math.max(r.minX,Math.min(x,r.maxX)),closestZ=Math.max(r.minZ,Math.min(z,r.maxZ));
     const dx=x-closestX,dz=z-closestZ;
@@ -336,6 +320,7 @@ function updateWorldLighting(dt){
   moonLight.position.set(playerX-32,25,playerZ+12);
 }
 function beginGameplay(){
+  if(typeof window.createOqtheraGameplayCharacter!=='function'){setTimeout(beginGameplay,50);return;}
   gameActive=true;playerX=0;playerZ=4;playerYaw=0;playerPitch=0;health=100;energy=100;oxygen=100;lastGameTick=performance.now();gameStartedAt=performance.now();
   gameHud.classList.add('active');gameHint.classList.add('active');buildFirstPersonHands();buildPlayerRig();setThirdPerson(false);
   document.querySelector('.content').style.display='none';document.querySelector('.meta').style.display='none';document.querySelector('.corner-code').style.display='none';document.querySelector('.frame').style.display='none';document.querySelector('.topbar').style.display='none';document.querySelector('#aria').classList.remove('show');
@@ -381,8 +366,7 @@ function animate(){
     const sway=moving&&isGrounded?Math.sin(walkPhase)*.11:0;
     if(firstPersonHands){firstPersonHands.position.set(sway*.35,bob+(isCrouching?-.28:0),0);firstPersonHands.rotation.z=moving?Math.sin(walkPhase)*.035:0;firstPersonHands.rotation.x=moving?Math.cos(walkPhase*2)*.035:0}
     if(playerRig){
-      playerRig.position.set(playerX,playerY,playerZ);playerRig.rotation.y=playerYaw;
-      playerRig.scale.y=isCrouching?.68:1;
+      playerRig.position.set(playerX,playerY+(moving&&isGrounded?Math.abs(Math.sin(walkPhase*2))*.025:0),playerZ);playerRig.rotation.y=Math.PI+playerYaw;playerRig.rotation.x=moving&&isGrounded?Math.sin(walkPhase)*.025:0;playerRig.scale.set(.36,isCrouching?.26:.36,.36);
       const swing=moving?Math.sin(walkPhase)*(sprinting?.85:.55):0;
       playerLegs.forEach((leg,i)=>{leg.rotation.x=(i===0?1:-1)*swing});
       playerArms.forEach((arm,i)=>{arm.rotation.x=(i===0?-1:1)*swing*.8+(moving?Math.sin(walkPhase*2+i)*.04:0)});
