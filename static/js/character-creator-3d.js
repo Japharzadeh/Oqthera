@@ -335,7 +335,7 @@ if(host){
       }
       limbGroups.arms.push(arm);limbGroups.legs.push(leg);
     }
-    avatar.userData.oqtheraLimbGroups=limbGroups;
+    avatar.userData.oqtheraLimbNames={arms:['oqArmLeft','oqArmRight'],legs:['oqLegLeft','oqLegRight']};
     avatar.visible=true;importedAvatar.visible=false;
   }
   let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
