@@ -1,4 +1,5 @@
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js';
 
 const MANIFEST_URL = '/static/characters/manifest.json';
 const cache = new Map();
@@ -28,18 +29,8 @@ function loadGltf(url) {
   return pending;
 }
 
-function disposeObject(root) {
-  root.traverse((node) => {
-    if (!node.isMesh) return;
-    node.geometry?.dispose();
-    const materials = Array.isArray(node.material) ? node.material : [node.material];
-    materials.forEach((material) => material?.dispose());
-  });
-}
-
 function cloneGltfScene(scene) {
-  // GLTF scenes can contain skinned meshes; use SkeletonUtils in production if cloning a cached skinned scene.
-  return scene.clone(true);
+  return cloneSkeleton(scene);
 }
 
 export async function getCharacterAssetManifest() {
@@ -75,6 +66,3 @@ export async function resolveCharacterAssets({ gender = 'male', hairStyle = 'med
   };
 }
 
-export function disposeCharacterObject(root) {
-  if (root) disposeObject(root);
-}
