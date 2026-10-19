@@ -323,6 +323,10 @@ if(host){
       knee.name=side<0?'oqKneeLeft':'oqKneeRight';
       knee.position.set(0,1.02-1.88,0);
       leg.add(knee);
+      const foot=new THREE.Group();
+      foot.name=side<0?'oqFootLeft':'oqFootRight';
+      foot.position.set(0,.38-1.02,0);
+      knee.add(foot);
       for(const child of [...avatar.children]){
         if(child===arm||child===leg||!child.isMesh)continue;
         const x=child.position.x,y=child.position.y;
@@ -334,16 +338,17 @@ if(host){
           arm.add(child);
         }else if(legMesh){
           avatar.remove(child);
+          const isFoot=y<=.34;
           const lowerLeg=y<=1.12;
           child.position.x-=side*.19;
-          child.position.y-=lowerLeg?1.02:1.88;
+          child.position.y-=isFoot?.38:lowerLeg?1.02:1.88;
           child.position.z-=0;
-          (lowerLeg?knee:leg).add(child);
+          (isFoot?foot:lowerLeg?knee:leg).add(child);
         }
       }
       limbGroups.arms.push(arm);limbGroups.legs.push(leg);kneeGroups.push(knee);
     }
-    avatar.userData.oqtheraLimbNames={arms:['oqArmLeft','oqArmRight'],legs:['oqLegLeft','oqLegRight'],knees:['oqKneeLeft','oqKneeRight']};
+    avatar.userData.oqtheraLimbNames={arms:['oqArmLeft','oqArmRight'],legs:['oqLegLeft','oqLegRight'],knees:['oqKneeLeft','oqKneeRight'],feet:['oqFootLeft','oqFootRight']};
     avatar.visible=true;importedAvatar.visible=false;
   }
   let targetYaw=0,targetPitch=0,currentYaw=0,currentPitch=0,targetZoom=9.3,currentZoom=9.3,dragging=false,lastX=0,lastY=0;
