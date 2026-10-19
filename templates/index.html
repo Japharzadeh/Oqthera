@@ -211,14 +211,13 @@ function textFromHtml(html){
   holder.innerHTML=html;
   return [...holder.querySelectorAll('p')].map(p=>({text:p.textContent.trim(),em:!!p.querySelector('.em')}));
 }
-function typeParagraph(element,text,token,done){
+function typeParagraph(element,text,token,done,speed=30){
   element.textContent='';
   const caret=document.createElement('span');
   caret.className='typed-caret';
   caret.setAttribute('aria-hidden','true');
   element.appendChild(caret);
   let shown=0,finished=false,lastTime=0;
-  const speed=30;
   function revealTo(count){
     if(finished||token!==narrationToken)return;
     const target=Math.min(text.length,Math.max(shown,count));
@@ -343,22 +342,25 @@ function narrateChapter(){
   const revealParagraphs=()=>{
     if(paragraphsRendered)return;
     paragraphsRendered=true;
-    const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:Math.max(12,paragraphs.reduce((sum,p)=>sum+p.text.length,0)/13);
     const total=paragraphs.reduce((sum,p)=>sum+p.text.length,0)||1;
+    const estimatedDuration=Math.max(12,total/10, audioFiles.chapters[chapterIndex].length>1?26:0);
+    const duration=Math.max(Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:0,estimatedDuration);
     let cumulative=0;
     paragraphs.forEach((item,index)=>{
       const p=document.createElement('p');
+      p.style.animationDelay=(index*110)+'ms';
       if(item.em)p.className='em';
       storyText.appendChild(p);
       const start=cumulative/total*duration;
       cumulative+=item.text.length;
       const end=cumulative/total*duration;
+      let typing=null;
       const reveal=()=>{
         if(token!==narrationToken||completed)return;
-        p.textContent=item.text;
+        if(!typing)typing=typeParagraph(p,item.text,token,null,Math.max(18,(end-start)*1000/Math.max(1,item.text.length)));
       };
       timers.push(setTimeout(reveal,Math.max(0,start*1000)));
-      timers.push(setTimeout(()=>{if(p.textContent!==item.text)reveal()},Math.max(0,end*1000-100)));
+      timers.push(setTimeout(()=>{if(token===narrationToken&&!completed){if(!typing)reveal();if(typing)typing.finish()}},Math.max(0,end*1000-80)));
     });
     voiceStatus.textContent='PLAYING RECORDED NARRATION';
   };
