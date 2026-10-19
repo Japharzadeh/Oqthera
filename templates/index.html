@@ -265,7 +265,7 @@ function buildFirstPersonHands(){
   }
 }
 function buildPlayerRig(){
-  if(playerRig){scene.remove(playerRig);playerRig.traverse(node=>{if(node.geometry)node.geometry.dispose()})}
+  if(playerRig)scene.remove(playerRig)
   const saved=JSON.parse(localStorage.getItem('oqthera.character')||'{}');
   if(typeof window.createOqtheraGameplayCharacter!=='function'){
     throw new Error('The selected character model is not ready yet.');
