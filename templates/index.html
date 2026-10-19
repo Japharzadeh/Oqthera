@@ -226,7 +226,7 @@ const pressedKeys=new Set();
 const gameHud=document.querySelector('#game-hud');
 const gameHint=document.querySelector('#game-hint');
 let firstPersonHands=null,thirdPerson=false,playerRig=null,playerArms=[],playerLegs=[],playerHead=null;
-let jumpVelocity=0,playerY=0,isGrounded=true,isCrouching=false,walkPhase=0,gameStartedAt=0,gameClockHours=6;
+let jumpVelocity=0,playerY=0,isGrounded=true,isCrouching=false,walkPhase=0,gameStartedAt=0,gameClockHours=6,playerBodyYaw=Math.PI;
 const PLAYER_RADIUS=.38,PLAYER_HEIGHT=1.78;
 function updateHud(){
   document.querySelector('#hud-coordinates').textContent='X '+playerX.toFixed(1).padStart(5,'0')+' / Z '+playerZ.toFixed(1).padStart(5,'0');
@@ -322,7 +322,7 @@ function updateWorldLighting(dt){
 }
 function beginGameplay(){
   if(typeof window.createOqtheraGameplayCharacter!=='function'){setTimeout(beginGameplay,50);return;}
-  gameActive=true;playerX=0;playerZ=4;playerYaw=0;playerPitch=0;health=100;energy=100;oxygen=100;lastGameTick=performance.now();gameStartedAt=performance.now();
+  gameActive=true;playerX=0;playerZ=4;playerYaw=0;playerBodyYaw=Math.PI;playerPitch=0;health=100;energy=100;oxygen=100;lastGameTick=performance.now();gameStartedAt=performance.now();
   gameHud.classList.add('active');gameHint.classList.add('active');buildFirstPersonHands();buildPlayerRig();setThirdPerson(false);
   document.querySelector('.content').style.display='none';document.querySelector('.meta').style.display='none';document.querySelector('.corner-code').style.display='none';document.querySelector('.frame').style.display='none';document.querySelector('.topbar').style.display='none';document.querySelector('#aria').classList.remove('show');
   updateHud();camera.position.set(playerX,1.72,playerZ);
@@ -367,7 +367,12 @@ function animate(){
     const sway=moving&&isGrounded?Math.sin(walkPhase)*.11:0;
     if(firstPersonHands){firstPersonHands.position.set(sway*.35,bob+(isCrouching?-.28:0),0);firstPersonHands.rotation.z=moving?Math.sin(walkPhase)*.035:0;firstPersonHands.rotation.x=moving?Math.cos(walkPhase*2)*.035:0}
     if(playerRig){
-      playerRig.position.set(playerX,playerY+(moving&&isGrounded?Math.abs(Math.sin(walkPhase*2))*.025:0),playerZ);playerRig.rotation.y=Math.PI+playerYaw;playerRig.rotation.x=moving&&isGrounded?Math.sin(walkPhase)*.025:0;playerRig.scale.set(.36,isCrouching?.26:.36,.36);
+      playerRig.position.set(playerX,playerY+(moving&&isGrounded?Math.abs(Math.sin(walkPhase*2))*.025:0),playerZ);
+      const targetBodyYaw=moving?Math.atan2(dx,dz):Math.PI+playerYaw;
+      const yawDelta=Math.atan2(Math.sin(targetBodyYaw-playerBodyYaw),Math.cos(targetBodyYaw-playerBodyYaw));
+      playerBodyYaw+=yawDelta*(1-Math.exp(-dt*(moving?11:8)));
+      playerRig.rotation.y=playerBodyYaw;
+      playerRig.rotation.x=moving&&isGrounded?Math.sin(walkPhase)*.025:0;playerRig.scale.set(.36,isCrouching?.26:.36,.36);
       const swing=moving&&isGrounded?Math.sin(walkPhase)*(sprinting?.95:isCrouching?.24:.72):0;
       playerLegs.forEach((leg,i)=>{
         leg.rotation.x=(i===0?1:-1)*swing;
