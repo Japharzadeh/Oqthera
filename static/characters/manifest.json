@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "project": "Oqthera / LAST STATION: EARTH",
+  "format": "glb",
+  "coordinateSystem": {
+    "units": "meters",
+    "up": "Y",
+    "forward": "-Z",
+    "restPose": "A-pose"
+  },
+  "status": "awaiting-custom-art-assets",
+  "characterPresets": {
+    "male": {
+      "label": "Male survivor",
+      "base": "/static/characters/male/base.glb",
+      "hair": {
+        "short-crop": "/static/characters/hair/male/short-crop.glb",
+        "textured-crop": "/static/characters/hair/male/textured-crop.glb",
+        "swept-back": "/static/characters/hair/male/swept-back.glb",
+        "curly-short": "/static/characters/hair/male/curly-short.glb",
+        "shaved": null,
+        "medium-messy": "/static/characters/hair/male/medium-messy.glb"
+      }
+    },
+    "female": {
+      "label": "Female survivor",
+      "base": "/static/characters/female/base.glb",
+      "hair": {
+        "bob": "/static/characters/hair/female/bob.glb",
+        "shoulder-length": "/static/characters/hair/female/shoulder-length.glb",
+        "tied-back": "/static/characters/hair/female/tied-back.glb",
+        "long-layered": "/static/characters/hair/female/long-layered.glb",
+        "braided": "/static/characters/hair/female/braided.glb",
+        "short-textured": "/static/characters/hair/female/short-textured.glb"
+      }
+    },
+    "androgynous": {
+      "label": "Androgynous survivor",
+      "base": "/static/characters/androgynous/base.glb",
+      "hair": {
+        "short-crop": "/static/characters/hair/shared/short-crop.glb",
+        "windswept": "/static/characters/hair/shared/windswept.glb",
+        "tied-back": "/static/characters/hair/shared/tied-back.glb",
+        "shaved": null
+      }
+    }
+  },
+  "outfits": {
+    "station-utility": {
+      "label": "Station Utility",
+      "asset": "/static/characters/outfits/station-utility/outfit.glb",
+      "materialSlots": [
+        "fabric",
+        "reinforcement",
+        "trim",
+        "metal"
+      ]
+    },
+    "tactical-field": {
+      "label": "Tactical Field Jacket",
+      "asset": "/static/characters/outfits/tactical-field/outfit.glb",
+      "materialSlots": [
+        "fabric",
+        "reinforcement",
+        "trim",
+        "metal"
+      ]
+    },
+    "desert-survival": {
+      "label": "Desert Survival",
+      "asset": "/static/characters/outfits/desert-survival/outfit.glb",
+      "materialSlots": [
+        "fabric",
+        "scarf",
+        "reinforcement",
+        "trim"
+      ]
+    },
+    "research-uniform": {
+      "label": "Research Uniform",
+      "asset": "/static/characters/outfits/research-uniform/outfit.glb",
+      "materialSlots": [
+        "fabric",
+        "panel",
+        "trim",
+        "metal"
+      ]
+    },
+    "stealth-layers": {
+      "label": "Stealth Layers",
+      "asset": "/static/characters/outfits/stealth-layers/outfit.glb",
+      "materialSlots": [
+        "fabric",
+        "reinforcement",
+        "trim"
+      ]
+    },
+    "insulated-expedition": {
+      "label": "Insulated Expedition",
+      "asset": "/static/characters/outfits/insulated-expedition/outfit.glb",
+      "materialSlots": [
+        "outerwear",
+        "insulation",
+        "trim",
+        "metal"
+      ]
+    },
+    "medical-rescue": {
+      "label": "Medical / Rescue",
+      "asset": "/static/characters/outfits/medical-rescue/outfit.glb",
+      "materialSlots": [
+        "fabric",
+        "marker",
+        "trim",
+        "metal"
+      ]
+    }
+  },
+  "accessories": {
+    "respirator": "/static/characters/accessories/respirator.glb",
+    "comms-headset": "/static/characters/accessories/comms-headset.glb",
+    "goggles": "/static/characters/accessories/goggles.glb",
+    "field-backpack": "/static/characters/accessories/field-backpack.glb",
+    "utility-gloves": "/static/characters/accessories/utility-gloves.glb",
+    "utility-belt": "/static/characters/accessories/utility-belt.glb"
+  },
+  "rigContract": {
+    "skeletonId": "oqthera-humanoid-v1",
+    "requiredNodes": [
+      "root",
+      "pelvis",
+      "spine",
+      "spine_1",
+      "spine_2",
+      "neck",
+      "head",
+      "clavicle_l",
+      "upperarm_l",
+      "lowerarm_l",
+      "hand_l",
+      "clavicle_r",
+      "upperarm_r",
+      "lowerarm_r",
+      "hand_r",
+      "thigh_l",
+      "calf_l",
+      "foot_l",
+      "thigh_r",
+      "calf_r",
+      "foot_r"
+    ],
+    "maxInfluencesPerVertex": 4,
+    "compatibleOutfitsMustShareSkeleton": true
+  }
+}
