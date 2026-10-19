@@ -77,6 +77,28 @@ const particlesCount=1700;const particlePositions=new Float32Array(particlesCoun
 for(let i=0;i<particlesCount;i++){particlePositions[i*3]=(Math.random()-.5)*110;particlePositions[i*3+1]=Math.random()*28;particlePositions[i*3+2]=-Math.random()*125+15;particleSpeeds[i]=.3+Math.random()*.9}
 const particleGeo=new THREE.BufferGeometry();particleGeo.setAttribute('position',new THREE.BufferAttribute(particlePositions,3));const particleMat=new THREE.PointsMaterial({color:0xb08b72,size:.075,transparent:true,opacity:.65,depthWrite:false});const ash=new THREE.Points(particleGeo,particleMat);scene.add(ash);
 const farGlow=new THREE.Mesh(new THREE.PlaneGeometry(150,42),new THREE.MeshBasicMaterial({color:0x273635,transparent:true,opacity:.17,depthWrite:false}));farGlow.position.set(0,10,-75);scene.add(farGlow);
+
+const skyObjects=new THREE.Group();scene.add(skyObjects);
+const moonGroup=new THREE.Group();moonGroup.position.set(-27,24,-104);moonGroup.rotation.set(.18,-.32,-.12);skyObjects.add(moonGroup);
+const moon=new THREE.Mesh(new THREE.SphereGeometry(15,48,32),new THREE.MeshStandardMaterial({color:0x3b2927,roughness:1,metalness:.04,emissive:0x160907,emissiveIntensity:.5}));moonGroup.add(moon);
+const moonRim=new THREE.Mesh(new THREE.SphereGeometry(15.35,40,28),new THREE.MeshBasicMaterial({color:0x9b4935,transparent:true,opacity:.12,side:THREE.BackSide,depthWrite:false}));moonGroup.add(moonRim);
+const moonRing=new THREE.Mesh(new THREE.TorusGeometry(20.5,.16,3,180),new THREE.MeshBasicMaterial({color:0xb66d4c,transparent:true,opacity:.48,depthWrite:false}));moonRing.rotation.x=1.12;moonRing.rotation.y=-.12;moonGroup.add(moonRing);
+const moonRing2=new THREE.Mesh(new THREE.TorusGeometry(22.2,.055,3,180),new THREE.MeshBasicMaterial({color:0x8c9b98,transparent:true,opacity:.26,depthWrite:false}));moonRing2.rotation.x=1.12;moonRing2.rotation.y=-.12;moonGroup.add(moonRing2);
+const orbitMaterial=new THREE.MeshBasicMaterial({color:0x6e8f8a,transparent:true,opacity:.24,depthWrite:false});
+for(let i=0;i<3;i++){const orbit=new THREE.Mesh(new THREE.TorusGeometry(27+i*1.1,.035,3,200),orbitMaterial);orbit.position.set(8,27,-112);orbit.rotation.set(.9+i*.12,.2+i*.08,-.24);skyObjects.add(orbit)}
+const shardMaterial=new THREE.MeshStandardMaterial({color:0x252e2d,metalness:.7,roughness:.5,emissive:0x0b1514});
+for(let i=0;i<18;i++){const angle=i/18*Math.PI*2,radius=25+Math.random()*5;const shard=new THREE.Mesh(new THREE.BoxGeometry(.35+Math.random()*.9,.18+Math.random()*.28,.2+Math.random()*.4),shardMaterial);shard.position.set(8+Math.cos(angle)*radius,27+Math.sin(angle)*radius*.62,-112+Math.sin(angle)*3);shard.rotation.set(Math.random(),Math.random(),Math.random());skyObjects.add(shard)}
+const starCount=1500,starPositions=new Float32Array(starCount*3);
+for(let i=0;i<starCount;i++){starPositions[i*3]=(Math.random()-.5)*260;starPositions[i*3+1]=12+Math.random()*105;starPositions[i*3+2]=-35-Math.random()*190}
+const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.BufferAttribute(starPositions,3));
+const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x9eaaa6,size:.09,transparent:true,opacity:.66,depthWrite:false,sizeAttenuation:true}));scene.add(stars);
+const lightColumns=[];
+for(let i=0;i<4;i++){const column=new THREE.Mesh(new THREE.PlaneGeometry(3+Math.random()*4,42+Math.random()*20),new THREE.MeshBasicMaterial({color:0x72918a,transparent:true,opacity:.035,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));column.position.set(-34+i*19,22,-72-i*12);column.rotation.z=(Math.random()-.5)*.12;scene.add(column);lightColumns.push(column)}
+const signalMaterial=new THREE.MeshBasicMaterial({color:0x6db9ad,transparent:true,opacity:.36,side:THREE.DoubleSide,depthWrite:false});
+const signalRings=[];
+for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.RingGeometry(1.5,1.57,64),signalMaterial.clone());ring.rotation.x=-Math.PI/2;ring.position.set(1.8,-.205,-8);scene.add(ring);signalRings.push(ring)}
+const signalBeacon=new THREE.PointLight(0x69b8aa,1.2,28,2);signalBeacon.position.set(1.8,2,-8);scene.add(signalBeacon);
+
 let pointerX=0,pointerY=0,targetX=0,targetY=0,elapsed=0;
 addEventListener('pointermove',e=>{pointerX=(e.clientX/innerWidth-.5)*1.4;pointerY=(e.clientY/innerHeight-.5)*.45});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7))});
