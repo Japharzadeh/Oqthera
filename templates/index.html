@@ -18,6 +18,18 @@
 .intro{position:fixed;z-index:7;inset:0;display:none;align-items:center;justify-content:center;padding:8vw;background:rgba(5,8,10,.78);backdrop-filter:blur(8px)}.intro.open{display:flex;animation:fade .7s ease both}@keyframes fade{from{opacity:0}to{opacity:1}}.story-card{position:relative;width:min(860px,100%);border:1px solid rgba(225,225,211,.2);background:linear-gradient(135deg,rgba(20,25,26,.94),rgba(7,10,12,.94));padding:clamp(26px,5vw,62px);box-shadow:0 30px 100px #0008}.story-card:before{content:"";position:absolute;top:-1px;right:-1px;width:54px;height:54px;border-top:2px solid var(--rust);border-right:2px solid var(--rust)}.story-top{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#c17b5b;font:10px var(--mono);letter-spacing:.18em;direction:ltr}.story-top-actions{display:flex;align-items:center;gap:16px}.story-count{color:#8d9693}.skip-intro{background:transparent;border:1px solid rgba(182,109,76,.55);padding:8px 10px;color:#d1b6a5;font:9px var(--mono);letter-spacing:.1em;white-space:nowrap;transition:background .2s,border-color .2s,color .2s}.skip-intro:hover{background:rgba(182,109,76,.16);border-color:#d78b67;color:#fff}.skip-intro:focus-visible{outline:2px solid #d78b67;outline-offset:3px}.story-title{font-size:clamp(25px,4vw,42px);font-weight:500;margin:36px 0 20px;line-height:1.6}.story-text{font-size:clamp(14px,1.6vw,17px);font-weight:300;line-height:2.4;color:#c1c5bf;max-width:670px;min-height:130px}.story-text p{margin:0 0 13px}.story-text .em{color:#e2a080}.story-bottom{display:flex;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid var(--line);padding-top:24px;margin-top:24px}.story-text p{opacity:1;animation:storyLine .45s ease both}.story-title-word{display:inline-block;animation:titleWordIn .55s cubic-bezier(.16,1,.3,1) both}.story-title-space{white-space:pre}@keyframes titleWordIn{from{opacity:0;transform:translateY(15px);filter:blur(7px);letter-spacing:.08em}to{opacity:1;transform:translateY(0);filter:blur(0);letter-spacing:normal}}.story-text .typed-char{display:inline;animation:glyphIn .22s ease-out both}@keyframes glyphIn{from{opacity:0;filter:blur(4px);color:#e8a17f}to{opacity:1;filter:blur(0);color:inherit}}.story-text p{will-change:opacity,transform,filter}.story-title{will-change:opacity,transform}.story-card{animation:cardArrival .8s cubic-bezier(.16,1,.3,1) both}@keyframes cardArrival{from{opacity:0;transform:translateY(18px) scale(.985);filter:blur(5px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}@media(prefers-reduced-motion:reduce){.story-title-word,.story-text p,.story-text .typed-char,.story-card{animation:none!important;filter:none!important;transform:none!important}}.story-text p .typed-caret{display:inline-block;width:1px;height:1em;background:#d78b67;vertical-align:-.12em;margin-inline-start:2px;animation:caretBlink .8s steps(1) infinite}@keyframes caretBlink{50%{opacity:0}}@keyframes storyLine{from{opacity:0;transform:translateY(12px);filter:blur(3px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}.story-title{transition:opacity .25s,transform .25s}.story-title.changing{opacity:0;transform:translateY(8px)}.intro.leaving{animation:fade .8s ease reverse both;pointer-events:none}.voice-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:17px;border-top:1px solid rgba(226,231,223,.1);direction:ltr}.voice-controls button{background:rgba(255,255,255,.035);border:1px solid #454d4a;padding:8px 12px;color:#c9cdc5;font-size:11px}.voice-controls button:hover{border-color:#b66d4c;color:#fff}.voice-controls button:disabled{opacity:.45;cursor:default}.voice-controls label{display:flex;align-items:center;gap:8px;color:#9fa8a2;font-size:11px}.voice-controls input[type=range]{width:95px;accent-color:#b66d4c}.voice-status{margin-right:auto;color:#c17b5b;font:9px var(--mono);direction:ltr;letter-spacing:.1em}.progress{display:flex;gap:7px;direction:ltr}.progress span{width:22px;height:2px;background:#454b49;transition:background .3s,width .3s}.progress span.active{background:#c17b5b;width:36px}.story-controls{display:flex;gap:18px;align-items:center}.story-next{background:#a25f43;border:1px solid #c37d5a;color:#fff;padding:12px 20px;min-width:145px;display:flex;justify-content:space-between;align-items:center}.story-next:hover{background:#bd7553}.story-back{background:none;border:0;color:#969f9b;font-size:12px}.aria{position:fixed;right:0;bottom:0;left:0;z-index:8;background:rgba(9,13,15,.95);border-top:1px solid rgba(182,109,76,.4);padding:18px 5vw;display:none;align-items:center;gap:18px;direction:ltr}.aria.show{display:flex;animation:fade .5s ease}.aria-icon{flex:0 0 40px;height:40px;border:1px solid #b66d4c;display:grid;place-items:center;color:#d78b67;font:11px var(--mono);direction:ltr}.aria-copy{flex:1}.aria-label{font:9px var(--mono);letter-spacing:.2em;color:#c17b5b;direction:ltr;text-align:left;margin-bottom:5px}.aria-line{font-size:13px;line-height:1.9;color:#d0d2ca}.aria-dismiss{background:none;border:1px solid #4c5350;padding:9px 13px;color:#aab0aa;font-size:11px;white-space:nowrap}.loading{position:fixed;z-index:20;inset:0;background:#080b0d;display:grid;place-items:center;transition:opacity .8s}.loading.hide{opacity:0;pointer-events:none}.loader-inner{text-align:center;font:10px var(--mono);letter-spacing:.2em;color:#aeb4ad}.loader-bar{width:180px;height:1px;background:#303735;margin:17px auto;overflow:hidden}.loader-bar i{display:block;height:100%;width:0;background:#bd7958;animation:load 1.1s ease forwards}@keyframes load{to{width:100%}}.corner-code{position:fixed;z-index:5;top:50%;right:5.3vw;writing-mode:vertical-rl;transform:translateY(-50%);font:9px var(--mono);letter-spacing:.24em;color:#777f7b;direction:ltr}
 @media(max-width:700px){.topbar{padding:20px 6vw}.topbar .right-status{display:none}.frame{inset:66px 5vw 28px}.content{padding:18vh 8vw 13vh;align-items:center}.hero{width:100%}.title-en{font-size:clamp(39px,12vw,67px)}.title-row{gap:16px}.start-game{font-size:9px}.eyebrow{font-size:9px;margin-bottom:22px}.title-fa{font-size:18px}.tagline{font-size:14px;line-height:2.1}.actions{gap:17px}.primary{min-width:190px;padding:13px 17px}.meta{bottom:3vh;left:8vw;right:8vw}.coords{gap:14px}.coords div:nth-child(2){display:none}.scrollhint{font-size:8px}.corner-code{display:none}.intro{padding:6vw}.story-card{padding:28px 23px}.story-title{margin:25px 0 14px}.story-text{min-height:180px;font-size:14px}.story-bottom{align-items:flex-end}.story-next{min-width:128px;padding:11px 14px}.aria{padding:14px 5vw;gap:12px}.aria-icon{flex-basis:34px;height:34px}.aria-line{font-size:12px}.aria-dismiss{padding:8px}.story-top{font-size:9px}.story-top-actions{gap:8px}.skip-intro{padding:7px 8px;font-size:8px;letter-spacing:.04em}.voice-controls{gap:7px}.voice-controls button{padding:8px 9px}.voice-status{width:100%;margin:2px 0 0}.voice-controls input[type=range]{width:75px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
+
+.avatar-3d-wrap{position:relative;z-index:1;width:100%;height:min(56vh,500px);min-height:280px;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+.avatar-3d{position:absolute;inset:0;touch-action:none;cursor:grab;outline:none}
+.avatar-3d:active{cursor:grabbing}
+.avatar-3d canvas{display:block;width:100%;height:100%;outline:none}
+.avatar-view-controls{position:absolute;z-index:3;left:50%;bottom:32px;transform:translateX(-50%);display:flex;gap:5px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:100%}
+.avatar-view-controls button{border:1px solid #45514b;background:rgba(9,14,14,.86);color:#c9d0c8;padding:8px 9px;font:9px var(--mono);letter-spacing:.08em;cursor:pointer}
+.avatar-view-controls button:hover,.avatar-view-controls button:focus-visible{border-color:#c17b5b;color:#f1b08b}
+.avatar-drag-hint{position:absolute;bottom:9px;left:0;right:0;text-align:center;font:8px var(--mono);letter-spacing:.1em;color:#7e8984;pointer-events:none}
+.avatar-stage-label,.avatar-stage-note{z-index:3}
+.avatar-stage-label{margin-top:8px}
+@media(max-width:760px){.creator-body{grid-template-columns:1fr;grid-template-rows:minmax(320px,44vh) minmax(0,1fr)}.avatar-stage{border-right:0;border-bottom:1px solid var(--line);padding:8px 12px}.avatar-3d-wrap{height:100%;min-height:280px}.avatar-view-controls{bottom:28px}.avatar-stage-note{display:none}.avatar-stage-label{margin-top:0}.creator-shell{height:96dvh}.creator-head,.creator-foot{padding:12px 15px}}
 </style>
 </head>
 <body>
@@ -51,33 +63,7 @@
     </header>
     <div class="creator-body">
       <aside class="avatar-stage">
-        <svg class="avatar-svg" id="avatar-preview" viewBox="0 0 280 390" role="img" aria-label="Live character preview">
-          <defs><linearGradient id="jacketShade" x1="0" y1="0" x2="1" y2="1"><stop id="jacket-light" offset="0%" stop-color="#68736d"/><stop id="jacket-dark" offset="100%" stop-color="#252d2b"/></linearGradient><linearGradient id="skinShade" x1="0" y1="0" x2="1" y2="1"><stop id="skin-light" offset="0%" stop-color="#d6a887"/><stop id="skin-dark" offset="100%" stop-color="#996b55"/></linearGradient><linearGradient id="hairShade" x1="0" y1="0" x2="0" y2="1"><stop id="hair-light" offset="0%" stop-color="#554238"/><stop id="hair-dark" offset="100%" stop-color="#211d1b"/></linearGradient></defs>
-          <ellipse cx="140" cy="367" rx="78" ry="10" fill="#000" opacity=".35"/>
-          <path d="M54 364 Q58 300 78 276 Q94 258 115 252 L165 252 Q187 260 203 278 Q222 310 226 364Z" fill="url(#jacketShade)" stroke="#77827b" stroke-opacity=".35"/>
-          <path d="M111 252 L111 290 L140 319 L169 290 L169 252Z" fill="#9b735c" opacity=".9"/>
-          <path d="M113 255 L140 284 L167 255 L178 267 L140 313 L102 267Z" fill="#1c2423"/>
-          <path id="shirt" d="M124 286 L140 305 L156 286 L169 364 L111 364Z" fill="#303b39"/>
-          <path d="M86 285 L72 350 L95 357 L111 303Z" fill="#171e1e" opacity=".65"/><path d="M194 285 L208 350 L185 357 L169 303Z" fill="#171e1e" opacity=".65"/>
-          <path d="M91 278 L108 269 L117 312 L101 325Z M189 278 L172 269 L163 312 L179 325Z" fill="#8e9b91" opacity=".65"/>
-          <path d="M106 309 L119 322 M174 309 L161 322" stroke="#d0a07c" stroke-width="2" opacity=".55"/>
-          <path d="M119 235 L119 268 Q140 287 161 268 L161 235Z" fill="url(#skinShade)"/>
-          <path id="face-shape" d="M91 133 Q91 80 140 80 Q189 80 189 133 L183 190 Q177 222 140 239 Q103 222 97 190Z" fill="url(#skinShade)" stroke="#4e3c32" stroke-opacity=".5"/>
-          <path id="ear-left" d="M94 157 Q78 145 82 169 Q86 184 98 180Z" fill="#b78569"/><path id="ear-right" d="M186 157 Q202 145 198 169 Q194 184 182 180Z" fill="#b78569"/>
-          <path id="hair-back" d="M91 150 Q77 87 111 66 Q145 45 177 69 Q207 93 189 151 L180 128 L105 128Z" fill="url(#hairShade)"/>
-          <path id="brow-left" d="M105 143 Q119 135 130 142" stroke="#3b2b24" stroke-width="5" stroke-linecap="round" fill="none"/><path id="brow-right" d="M150 142 Q163 135 175 143" stroke="#3b2b24" stroke-width="5" stroke-linecap="round" fill="none"/>
-          <path id="eye-left" d="M105 157 Q117 147 130 157 Q117 167 105 157Z" fill="#eee8da"/><path id="eye-right" d="M150 157 Q163 147 175 157 Q163 167 150 157Z" fill="#eee8da"/>
-          <circle id="iris-left" cx="118" cy="157" r="5.4" fill="#6c8878"/><circle id="iris-right" cx="162" cy="157" r="5.4" fill="#6c8878"/><circle cx="118" cy="157" r="2.4" fill="#101414"/><circle cx="162" cy="157" r="2.4" fill="#101414"/>
-          <path id="nose" d="M140 155 L133 183 Q140 189 147 183" fill="none" stroke="#865c49" stroke-width="3" stroke-linecap="round"/>
-          <path id="lips" d="M124 203 Q140 198 156 203 Q140 216 124 203Z" fill="#89584e"/><path d="M127 203 Q140 207 153 203" stroke="#d4a08a" stroke-width="1.3" fill="none"/>
-          <path id="beard" d="M99 186 Q102 224 140 239 Q178 224 181 186 L169 199 Q160 216 140 218 Q120 216 111 199Z" fill="#332a25" opacity=".92"/>
-          <path id="hair-front" d="M92 145 Q84 97 111 77 Q142 54 174 76 Q194 92 188 139 L176 121 Q157 117 143 101 Q124 125 100 127Z" fill="url(#hairShade)"/>
-          <g id="glasses" fill="none" stroke="#202827" stroke-width="4"><rect x="101" y="145" width="32" height="23" rx="7"/><rect x="147" y="145" width="32" height="23" rx="7"/><path d="M133 152 Q140 148 147 152 M100 151 L91 147 M179 151 L189 147"/></g>
-          <path id="tattoo" d="M174 279 l7 8 -7 8 7 8 -7 8" stroke="#202827" stroke-width="2.5" fill="none"/>
-          <g id="scar" stroke="#e4b49a" stroke-width="2.5" stroke-linecap="round"><path d="M161 173 l12 9 M163 169 l12 9"/></g>
-          <g id="earring" fill="#c7a06b"><circle cx="88" cy="180" r="3.5"/><circle cx="192" cy="180" r="3.5"/></g>
-          <path d="M117 332 L140 347 L163 332" stroke="#b66d4c" stroke-width="2" fill="none" opacity=".9"/><rect x="131" y="338" width="18" height="24" rx="2" fill="#141b1b" stroke="#bd7958"/><path d="M136 344 H144 M136 349 H144 M136 354 H141" stroke="#d78b67" stroke-width="1.3"/>
-        </svg>
+        <div class="avatar-3d-wrap"><div id="avatar-3d" class="avatar-3d" role="img" aria-label="Interactive 3D survivor preview"></div><div class="avatar-view-controls"><button type="button" data-avatar-view="front">FRONT</button><button type="button" data-avatar-view="back">BACK</button><button type="button" data-avatar-view="face">FACE</button><button type="button" data-avatar-view="reset">RESET</button></div><div class="avatar-drag-hint">DRAG TO ROTATE · SCROLL TO ZOOM</div></div>
         <div class="avatar-stage-label">LIVE IDENTITY PREVIEW</div><div class="avatar-stage-note">Your appearance updates as you make choices.</div>
       </aside>
       <div class="creator-controls">
@@ -563,6 +549,13 @@ function selectedCharacter(){
 }
 function updateAvatar(){
   const d=selectedCharacter();
+  if(window.update3DCharacter) window.update3DCharacter(d);
+  if(!document.getElementById('avatar-preview')){
+    document.querySelector('.avatar-stage-label').textContent=(d.name||'UNNAMED SURVIVOR').toUpperCase().slice(0,28)+' // 3D IDENTITY';
+    document.querySelector('.avatar-stage-note').textContent=d.gender.toUpperCase()+' • '+d.age+' • '+d.build;
+    const weathering=document.getElementById('weathering-value');if(weathering)weathering.textContent=d['scar-intensity']+'%';
+    return;
+  }
   const setDisplay=(id,show)=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none'};
   const skin=d['skin-tone']||'#e1b795';
   document.getElementById('skin-light').setAttribute('stop-color',skin);
@@ -638,5 +631,6 @@ document.querySelector('#confirm-character').addEventListener('click',()=>{
 });
 
 </script>
+<script type="module" src="/static/js/character-creator-3d.js"></script>
 </body>
 </html>
