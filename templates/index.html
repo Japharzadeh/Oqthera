@@ -313,8 +313,9 @@ function updateWorldLighting(dt){
   const sunHeight=Math.sin(sunAngle);
   const daylight=THREE.MathUtils.smoothstep(sunHeight,-.16,.22);
   const twilight=Math.max(0,1-Math.abs(sunHeight)*5);
-  const sunX=Math.cos(sunAngle)*95,sunY=Math.max(-22,sunHeight*88),sunZ=-65;
+  const sunX=Math.cos(sunAngle)*32,sunY=Math.max(-22,sunHeight*88),sunZ=-100;
   sunLight.position.set(playerX+sunX,sunY,playerZ+sunZ);
+  sunLight.target.position.set(playerX,0,playerZ);
   sunMesh.position.set(playerX+sunX*.92,Math.max(-10,sunY*.92),playerZ+sunZ*.92);
   sunGlow.position.copy(sunMesh.position);
   sunLight.intensity=.08+daylight*2.15+twilight*.32;
